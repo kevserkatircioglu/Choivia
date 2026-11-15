@@ -7,6 +7,7 @@ import {
   Leaf,
   LayoutDashboard,
   Sparkles,
+  Sprout,
   UserRound,
 } from 'lucide-react'
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
@@ -27,6 +28,9 @@ import { useStored } from './lib/useStored.js'
 import { AUTH_STORAGE_KEY, SESSION_STORAGE_KEY, readAccounts } from './lib/auth.js'
 import { dayKey, markWatered, touchStreak } from './utils/streak.js'
 import { AVATARS } from './data/avatars.js'
+import './hobbies.css'
+import Hobbies, { TodayHobbies } from './pages/Hobbies.jsx'
+import HobbyDetail from './pages/HobbyDetail.jsx'
 
 const PLAN_HOURS = Array.from({ length: 13 }, (_, i) => i + 8)
 const formatHour = (h) => `${String(h).padStart(2, '0')}:00`
@@ -37,6 +41,7 @@ function Sidebar() {
     { to: '/planner', label: 'Daily plan', icon: CalendarDays },
     { to: '/books', label: 'Reading nook', icon: BookMarked },
     { to: '/profile', label: 'Profile', icon: UserRound },
+    { to: '/hobbies', label: 'Hobbies', icon: Sprout }
   ]
 
   return (
@@ -113,6 +118,7 @@ function Dashboard({ user, streak }) {
 
       <div className="dashboard-content-grid-v2">
         <div className="dashboard-main-column-v2">
+          <TodayHobbies user={user} />
           <section className="dashboard-next-card-v2">
             <div className="dashboard-next-topline">
               <div>
@@ -263,6 +269,8 @@ function App() {
         />
         <main className="page-container">
           <Routes>
+            <Route path="/hobbies" element={<Hobbies user={user} />} />
+            <Route path="/hobbies/:hobbyId" element={<HobbyDetail user={user} />} />
             <Route path="/" element={<Dashboard user={user} streak={streak} />} />
             <Route path="/planner" element={<Planner user={user} />} />
             <Route path="/books" element={<Books user={user} />} />
