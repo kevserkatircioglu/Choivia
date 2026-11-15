@@ -1,5 +1,5 @@
-# Choivia – visual refresh (HCI)
-Run: `npm install` then `npm run dev` (phone test: `npm run dev -- --host`)
-New: components/ (AuthScreen, ProfileSetup, AppBar, ScenicHero, WateringOverlay, SaplingTransition, PageBanner, Logo, BottomNav, Avatar),
-pages/Planner.jsx, pages/Books.jsx, utils/streak.js, utils/period.js, lib/, data/avatars.js, choivia-extra.css, public/avatars/*.webp, favicon.
-Optional per-time avatar art: add `poses: { night: 'file.webp' }` in src/data/avatars.js.
+# Choivia v3
+New: WateringOverlay (long watering/bloom/streak scene + Skip + sound), Calendar page (year + month view, events),
+UpcomingEvents + TodayPlan (Home), Preferences page (avatar, username, password), sfx.js (Web Audio), events.js(+test).
+Fixed: stray "nm" text at the top of index.html, bottom nav links to deleted pages, CSS class clash (.cv-day).
+Note: src/pages/PreferencesQuiz.test.jsx and src/utils/study.test.js test files for removed modules (PreferencesQuiz.jsx, study.js) fail - delete them or restore the modules.

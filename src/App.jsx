@@ -1,15 +1,5 @@
 import { useState } from 'react'
-import {
-  ArrowRight,
-  ArrowUpRight,
-  BookMarked,
-  CalendarDays,
-  Leaf,
-  LayoutDashboard,
-  Sparkles,
-  Sprout,
-  UserRound,
-} from 'lucide-react'
+import { ArrowRight, ArrowUpRight, BookMarked, CalendarDays, Clock3, Home as HomeIcon, Leaf, Settings2, Sprout } from 'lucide-react'
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import './App.css'
 import './choivia-extra.css'
@@ -21,7 +11,11 @@ import WateringOverlay from './components/WateringOverlay.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import SaplingTransition from './components/SaplingTransition.jsx'
 import ScenicHero from './components/ScenicHero.jsx'
-import { Avatar, AvatarPicker } from './components/Avatar.jsx'
+import { Avatar } from './components/Avatar.jsx'
+import Calendar from './pages/Calendar.jsx'
+import Preferences from './pages/Preferences.jsx'
+import TodayPlan from './components/TodayPlan.jsx'
+import UpcomingEvents from './components/UpcomingEvents.jsx'
 import Planner from './pages/Planner.jsx'
 import Books from './pages/Books.jsx'
 import { useStored } from './lib/useStored.js'
@@ -33,15 +27,15 @@ import Hobbies, { TodayHobbies } from './pages/Hobbies.jsx'
 import HobbyDetail from './pages/HobbyDetail.jsx'
 
 const PLAN_HOURS = Array.from({ length: 13 }, (_, i) => i + 8)
-const formatHour = (h) => `${String(h).padStart(2, '0')}:00`
 
-function Sidebar() {
+function Sidebar({ streak }) {
   const navigation = [
-    { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-    { to: '/planner', label: 'Daily plan', icon: CalendarDays },
+    { to: '/', label: 'Home', icon: HomeIcon, end: true },
+    { to: '/planner', label: 'Daily plan', icon: Clock3 },
+    { to: '/calendar', label: 'Calendar', icon: CalendarDays },
+    { to: '/hobbies', label: 'Hobbies', icon: Sprout },
     { to: '/books', label: 'Reading book', icon: BookMarked },
-    { to: '/profile', label: 'Profile', icon: UserRound },
-    { to: '/hobbies', label: 'Hobbies', icon: Sprout }
+    { to: '/profile', label: 'Preferences', icon: Settings2 },
   ]
 
   return (
@@ -66,19 +60,17 @@ function Sidebar() {
         ))}
       </nav>
 
-      <div className="sidebar-bottom">
-        <div className="sidebar-note-icon"><Sparkles size={17} /></div>
-        <p className="sidebar-note-title">Small steps add up.</p>
-        <p className="sidebar-note-text">
-          You don’t have to do everything today. Just find your next step.
-        </p>
+      <div className="cv-side-card">
+        <span className="cv-side-flame" aria-hidden="true">🔥</span>
+        <b>{streak?.current || 1} day streak</b>
+        <small>Best: {streak?.best || 1}</small>
+        <p>Come back tomorrow and your plant will bloom again 🌱</p>
       </div>
     </aside>
   )
 }
 
-function Dashboard({ user, streak }) {
-  // Bugünün planı Planner ile aynı anahtardan okunur.
+function Home({ user, streak }) {
   const [plan] = useStored(`choivia:plan:${user.id}:${dayKey()}`, {})
 
   const items = PLAN_HOURS.filter((h) => plan[h]).map((h) => ({ hour: h, ...plan[h] }))
@@ -119,50 +111,11 @@ function Dashboard({ user, streak }) {
       <div className="dashboard-content-grid-v2">
         <div className="dashboard-main-column-v2">
           <TodayHobbies user={user} />
-          <section className="dashboard-next-card-v2">
-            <div className="dashboard-next-topline">
-              <div>
-                <p className="dashboard-overline muted-overline">TODAY</p>
-                <h2>Your plan for today</h2>
-              </div>
-              <span className="dashboard-next-index">
-                {String(done).padStart(2, '0')} <span>/ {String(total).padStart(2, '0')}</span>
-              </span>
-            </div>
-
-            {total === 0 ? (
-              <div className="dashboard-next-task">
-                <h3>Nothing planned yet.</h3>
-                <p>Add your first item to the daily plan and watch your plant grow.</p>
-                <Link to="/planner" className="text-link">
-                  Open daily plan <ArrowRight size={14} />
-                </Link>
-              </div>
-            ) : (
-              <>
-                <ul className="dashboard-today-list">
-                  {items.map((item) => (
-                    <li key={item.hour} className={item.done ? 'done' : ''}>
-                      <strong>{formatHour(item.hour)}</strong>
-                      <span>{item.text}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="dashboard-next-bottom">
-                  <div className="dashboard-next-track">
-                    <span style={{ width: `${percent}%` }} />
-                  </div>
-                  <strong>{percent}%</strong>
-                  <Link to="/planner" aria-label="Open daily plan">
-                    <ArrowRight size={18} />
-                  </Link>
-                </div>
-              </>
-            )}
-          </section>
+          <TodayPlan items={items} percent={percent} done={done} total={total} />
         </div>
 
         <aside className="dashboard-side-column-v2">
+          <UpcomingEvents user={user} />
           <section className="dashboard-note-panel-v2">
             <span className="note-flower">✳</span>
             <div>
@@ -180,30 +133,6 @@ function Dashboard({ user, streak }) {
         </span>
       </footer>
     </div>
-  )
-}
-
-function ProfilePage({ user, onUpdateUser, onLogout }) {
-  return (
-    <>
-      <section className="choivia-identity-card">
-        <div className="choivia-identity-avatar"><Avatar id={user?.avatar} size={72} /></div>
-        <div className="choivia-identity-copy">
-          <p className="eyebrow">YOUR CHOIVIA ACCOUNT</p>
-          <h2>{user?.username || 'Friend'}</h2>
-          <p>Your little corner for plans, hobbies and new beginnings.</p>
-        </div>
-        <button className="choivia-logout-button" type="button" onClick={onLogout}>Log out</button>
-      </section>
-
-      <section className="choivia-avatar-card">
-        <div>
-          <h2>Your avatar</h2>
-          <p>Tap an icon to change it.</p>
-        </div>
-        <AvatarPicker value={user?.avatar} onChange={(avatar) => onUpdateUser({ avatar })} />
-      </section>
-    </>
   )
 }
 
@@ -259,7 +188,7 @@ function App() {
           }}
         />
       )}
-      <Sidebar />
+      <Sidebar streak={streak} />
       <div className="app-main">
         <AppBar
           user={user}
@@ -271,12 +200,13 @@ function App() {
           <Routes>
             <Route path="/hobbies" element={<Hobbies user={user} />} />
             <Route path="/hobbies/:hobbyId" element={<HobbyDetail user={user} />} />
-            <Route path="/" element={<Dashboard user={user} streak={streak} />} />
+            <Route path="/" element={<Home user={user} streak={streak} />} />
+            <Route path="/calendar" element={<Calendar user={user} />} />
             <Route path="/planner" element={<Planner user={user} />} />
             <Route path="/books" element={<Books user={user} />} />
             <Route
               path="/profile"
-              element={<ProfilePage user={user} onUpdateUser={updateUserProfile} onLogout={handleLogout} />}
+              element={<Preferences user={user} streak={streak} onUpdateUser={updateUserProfile} onLogout={handleLogout} />}
             />
             <Route
               path="*"
@@ -284,7 +214,7 @@ function App() {
                 <div className="empty-state">
                   <h2>Page not found</h2>
                   <Link to="/" className="text-link">
-                    Return to dashboard <ArrowRight size={15} />
+                    Return to home <ArrowRight size={15} />
                   </Link>
                 </div>
               }

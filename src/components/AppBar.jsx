@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Flame, LogOut, Settings2, ClipboardList, X } from 'lucide-react'
+import { Flame, LogOut, Settings2, X } from 'lucide-react'
 import { Avatar, AvatarPicker } from './Avatar.jsx'
 import Logo from './Logo.jsx'
 
@@ -23,7 +23,6 @@ export default function AppBar({ user, streak, onPick, onLogout }) {
             <AvatarPicker value={user.avatar} onChange={(id) => { onPick(id); setOpen(false) }} />
             <div className="cv-sheet-links">
               <Link to="/profile" onClick={() => setOpen(false)}><Settings2 size={18} /> Preferences</Link>
-              <Link to="/study" onClick={() => setOpen(false)}><ClipboardList size={18} /> Usability study</Link>
               <button type="button" onClick={onLogout}><LogOut size={18} /> Log out</button>
             </div>
           </div>

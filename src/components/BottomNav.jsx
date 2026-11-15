@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { BookMarked, CalendarDays, CheckCircle2, LayoutDashboard, ListChecks } from 'lucide-react'
+import { BookMarked, CalendarDays, Clock3, Home, Sprout } from 'lucide-react'
 
 const ITEMS = [
-  { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
-  { to: '/guides', label: 'Guides', icon: ListChecks },
-  { to: '/planner', label: 'Plan', icon: CalendarDays },
+  { to: '/', label: 'Home', icon: Home, end: true },
+  { to: '/planner', label: 'Plan', icon: Clock3 },
+  { to: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { to: '/hobbies', label: 'Hobbies', icon: Sprout },
   { to: '/books', label: 'Books', icon: BookMarked },
-  { to: '/progress', label: 'Progress', icon: CheckCircle2 },
 ]
 
 export default function BottomNav() {
