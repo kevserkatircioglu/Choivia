@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Check, Download, Plus, Sprout, Upload } from 'lucide-react'
 import { useStored } from '../lib/useStored.js'
 import { TEMPLATES } from '../data/hobbyTemplates.js'
+import { applyAchievements } from '../utils/achievements.js'
 import {
   createHobby,
   hobbyProgress,
@@ -18,6 +19,25 @@ import {
 } from '../utils/hobbies.js'
 
 const weeklyLabel = (hobby) => `${weekCount(hobby)} of ${hobby.goalPerWeek ?? 3} days this week`
+
+// Check-in'i açar/kapatır, kazanılan başarımları kaydeder ve kısa bir bildirim metni döndürür.
+function useCheckin(hobbies, setHobbies) {
+  const [notice, setNotice] = useState('')
+
+  const toggle = (id) => {
+    const target = hobbies.find((hobby) => hobby.id === id)
+    if (!target) return
+    const { hobby: settled, unlocked } = applyAchievements(toggleCheckin(target))
+    setHobbies(hobbies.map((hobby) => (hobby.id === id ? settled : hobby)))
+    setNotice(
+      unlocked.length
+        ? `🏅 ${target.name}: ${unlocked.map((item) => item.title).join(', ')} unlocked!`
+        : '',
+    )
+  }
+
+  return [toggle, notice]
+}
 
 // Tek dokunuşla "bugün yaptım". Tekrar basınca geri alınır.
 export function CheckinButton({ hobby, onToggle }) {
@@ -39,9 +59,7 @@ export function CheckinButton({ hobby, onToggle }) {
 // Dashboard'da görünen kısa liste.
 export function TodayHobbies({ user }) {
   const [hobbies, setHobbies] = useStored(`choivia:hobbies:${user.id}`, [])
-
-  const toggle = (id) =>
-    setHobbies(hobbies.map((hobby) => (hobby.id === id ? toggleCheckin(hobby) : hobby)))
+  const [toggle, notice] = useCheckin(hobbies, setHobbies)
 
   return (
     <section className="hb-today" aria-labelledby="hb-today-title">
@@ -54,6 +72,8 @@ export function TodayHobbies({ user }) {
           All hobbies <ArrowRight size={14} />
         </Link>
       </div>
+
+      <p className="hb-status" role="status">{notice}</p>
 
       {hobbies.length === 0 ? (
         <div className="hb-empty">
@@ -124,14 +144,14 @@ export default function Hobbies({ user }) {
       goalPerWeek: Number(goal),
       reminderTime: reminder,
       emoji: template?.emoji ?? '🌱',
+      templateId: template?.id ?? '',
       stages: template?.stages ?? [{ title: 'First steps', tasks: [] }],
     })
     setHobbies([...hobbies, hobby])
     navigate(`/hobbies/${hobby.id}`)
   }
 
-  const toggle = (id) =>
-    setHobbies(hobbies.map((hobby) => (hobby.id === id ? toggleCheckin(hobby) : hobby)))
+  const [toggle, notice] = useCheckin(hobbies, setHobbies)
 
   function exportBackup() {
     const backup = { app: 'choivia', version: 1, exportedAt: new Date().toISOString(), hobbies }
@@ -175,6 +195,8 @@ export default function Hobbies({ user }) {
         <h1>Grow something you love.</h1>
         <p>Pick a roadmap, take one small step at a time, and check in whenever you practice.</p>
       </header>
+
+      <p className="hb-status" role="status">{notice}</p>
 
       {hobbies.length > 0 && (
         <section aria-labelledby="hb-mine">
@@ -307,4 +329,4 @@ export default function Hobbies({ user }) {
       </section>
     </div>
   )
-}
+} 

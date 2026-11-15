@@ -35,9 +35,12 @@ export function createHobby({
   stages = [],
   goalPerWeek = 3,
   reminderTime = '',
+  templateId = '',
 }) {
   return {
     id: uid(),
+    templateId,
+    achievements: {}, // { başarımId: 'YYYY-MM-DD' }
     name: name.trim(),
     emoji,
     why: why.trim(),
@@ -49,7 +52,18 @@ export function createHobby({
     stages: stages.map((stage) => ({
       id: uid(),
       title: stage.title,
-      tasks: stage.tasks.map((text) => ({ id: uid(), text, done: false })),
+      // Görev düz metin veya { key, text, minutes, tip } olabilir.
+      tasks: stage.tasks.map((task) => {
+        const item = typeof task === 'string' ? { text: task } : task
+        return {
+          id: uid(),
+          key: item.key ?? '',
+          text: item.text,
+          minutes: item.minutes ?? 0,
+          tip: item.tip ?? '',
+          done: false,
+        }
+      }),
     })),
   }
 }
@@ -218,13 +232,21 @@ export function parseBackup(text) {
       reminderTime: '',
       checkins: [],
       sessions: [],
+      templateId: '',
       ...hobby,
+      achievements:
+        hobby.achievements && typeof hobby.achievements === 'object' && !Array.isArray(hobby.achievements)
+          ? hobby.achievements
+          : {},
       stages: hobby.stages.map((stage) => ({
         id: String(stage.id ?? uid()),
         title: String(stage.title ?? ''),
         tasks: (Array.isArray(stage.tasks) ? stage.tasks : []).map((task) => ({
           id: String(task.id ?? uid()),
+          key: String(task.key ?? ''),
           text: String(task.text ?? ''),
+          minutes: Number(task.minutes) || 0,
+          tip: String(task.tip ?? ''),
           done: Boolean(task.done),
         })),
       })),

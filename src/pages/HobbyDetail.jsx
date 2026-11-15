@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Heart, Trash2 } from 'lucide-react'
 import { useStored } from '../lib/useStored.js'
 import { CheckinButton } from './Hobbies.jsx'
+import { achievementsFor, applyAchievements } from '../utils/achievements.js'
 import {
   MILESTONES,
   MOODS,
@@ -28,6 +29,7 @@ import {
 
 const MINUTE_CHIPS = [10, 20, 30, 45, 60]
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+const isTiny = (task) => task.text.startsWith('Just 2 minutes')
 
 export default function HobbyDetail({ user }) {
   const { hobbyId } = useParams()
@@ -36,6 +38,7 @@ export default function HobbyDetail({ user }) {
   const [drafts, setDrafts] = useState({})
   const [stageDraft, setStageDraft] = useState('')
   const [status, setStatus] = useState('')
+  const [celebration, setCelebration] = useState([])
   const [minutes, setMinutes] = useState('')
   const [mood, setMood] = useState('')
   const [note, setNote] = useState('')
@@ -69,9 +72,15 @@ export default function HobbyDetail({ user }) {
   const sessions = sessionsNewestFirst(hobby)
   const shownSessions = showAll ? sessions : sessions.slice(0, 5)
   const hours = Math.round((totalMinutes(hobby) / 60) * 10) / 10
+  const trophies = achievementsFor(hobby)
+  const unlockedCount = trophies.filter((item) => hobby.achievements?.[item.id]).length
 
-  const save = (updated) =>
-    setHobbies(hobbies.map((item) => (item.id === hobby.id ? updated : item)))
+  // Her değişiklik buradan geçer: yeni başarım varsa kaydedilir ve kutlanır.
+  function save(updated) {
+    const { hobby: settled, unlocked } = applyAchievements(updated)
+    setHobbies(hobbies.map((item) => (item.id === hobby.id ? settled : item)))
+    if (unlocked.length) setCelebration(unlocked)
+  }
 
   const mapStage = (stageId, change) =>
     save({
@@ -91,13 +100,32 @@ export default function HobbyDetail({ user }) {
       tasks: stage.tasks.filter((task) => task.id !== taskId),
     }))
 
+  // Büyük gelen bir adımın önüne 2 dakikalık bir versiyon ekler.
+  function makeSmaller(stageId, task) {
+    mapStage(stageId, (stage) => {
+      const index = stage.tasks.findIndex((item) => item.id === task.id)
+      const tiny = {
+        id: uid(),
+        key: '',
+        text: `Just 2 minutes: ${task.text}`,
+        minutes: 2,
+        tip: 'No pressure. Two minutes counts.',
+        done: false,
+      }
+      const tasks = [...stage.tasks]
+      tasks.splice(index, 0, tiny)
+      return { ...stage, tasks }
+    })
+    setStatus('Added a 2-minute version before this step.')
+  }
+
   function addTask(event, stageId) {
     event.preventDefault()
     const text = (drafts[stageId] || '').trim()
     if (!text) return
     mapStage(stageId, (stage) => ({
       ...stage,
-      tasks: [...stage.tasks, { id: uid(), text, done: false }],
+      tasks: [...stage.tasks, { id: uid(), key: '', text, minutes: 0, tip: '', done: false }],
     }))
     setDrafts({ ...drafts, [stageId]: '' })
   }
@@ -162,6 +190,26 @@ export default function HobbyDetail({ user }) {
       </header>
 
       <p className="hb-status" role="status">{status}</p>
+
+      <div aria-live="polite">
+        {celebration.length > 0 && (
+          <section className="hb-celebrate" aria-label="New achievement">
+            <p className="eyebrow">ACHIEVEMENT UNLOCKED</p>
+            <ul>
+              {celebration.map((item) => (
+                <li key={item.id}>
+                  <span className="hb-trophy-emoji" aria-hidden="true">{item.emoji}</span>
+                  <div>
+                    <strong>{item.title}</strong>
+                    <small>{item.description}</small>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <button type="button" className="hb-secondary" onClick={() => setCelebration([])}>Nice!</button>
+          </section>
+        )}
+      </div>
 
       <section className="hb-panel" aria-label="This week">
         <div className="hb-panel-row">
@@ -292,14 +340,26 @@ export default function HobbyDetail({ user }) {
         {next ? (
           <>
             <h2>{next.task.text}</h2>
-            <p>{next.stage.title} · {progress.percent}% of the roadmap done</p>
-            <button
-              type="button"
-              className="hb-primary"
-              onClick={() => toggleTask(next.stage.id, next.task.id)}
-            >
-              Mark this step done
-            </button>
+            <p>
+              {next.stage.title}
+              {next.task.minutes > 0 && ` · about ${next.task.minutes} min`}
+              {` · ${progress.percent}% of the roadmap done`}
+            </p>
+            {next.task.tip && <p className="hb-tip-line">💡 {next.task.tip}</p>}
+            <div className="hb-next-actions">
+              <button
+                type="button"
+                className="hb-primary"
+                onClick={() => toggleTask(next.stage.id, next.task.id)}
+              >
+                Mark this step done
+              </button>
+              {!isTiny(next.task) && (
+                <button type="button" className="hb-secondary" onClick={() => makeSmaller(next.stage.id, next.task)}>
+                  Make it smaller
+                </button>
+              )}
+            </div>
           </>
         ) : (
           <h2>You have completed every step. 🎉 Add new steps below to keep growing.</h2>
@@ -321,22 +381,38 @@ export default function HobbyDetail({ user }) {
               <ul className="hb-tasks">
                 {stage.tasks.map((task) => (
                   <li key={task.id} className={task.done ? 'done' : ''}>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={task.done}
-                        onChange={() => toggleTask(stage.id, task.id)}
-                      />
-                      <span>{task.text}</span>
-                    </label>
-                    <button
-                      type="button"
-                      className="hb-icon-btn"
-                      aria-label={`Remove step: ${task.text}`}
-                      onClick={() => removeTask(stage.id, task.id)}
-                    >
-                      ×
-                    </button>
+                    <div className="hb-task-row">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={task.done}
+                          onChange={() => toggleTask(stage.id, task.id)}
+                        />
+                        <span>
+                          {task.text}
+                          {task.minutes > 0 && <small className="hb-min">~{task.minutes} min</small>}
+                        </span>
+                      </label>
+                      <button
+                        type="button"
+                        className="hb-icon-btn"
+                        aria-label={`Remove step: ${task.text}`}
+                        onClick={() => removeTask(stage.id, task.id)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    {!task.done && (task.tip || !isTiny(task)) && (
+                      <details className="hb-tip">
+                        <summary>Need help?</summary>
+                        {task.tip && <p>{task.tip}</p>}
+                        {!isTiny(task) && (
+                          <button type="button" className="hb-secondary" onClick={() => makeSmaller(stage.id, task)}>
+                            Make it smaller
+                          </button>
+                        )}
+                      </details>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -366,6 +442,26 @@ export default function HobbyDetail({ user }) {
         />
         <button type="submit" className="hb-secondary">Add stage</button>
       </form>
+
+      <h2 className="hb-h2">
+        Achievements <small className="hb-count">{unlockedCount} of {trophies.length}</small>
+      </h2>
+      <ul className="hb-trophies">
+        {trophies.map((item) => {
+          const date = hobby.achievements?.[item.id]
+          return (
+            <li key={item.id} className={date ? 'on' : ''}>
+              <span className="hb-trophy-emoji" aria-hidden="true">{date ? item.emoji : '🔒'}</span>
+              <div>
+                <strong>{item.title}</strong>
+                <small>{item.description}</small>
+                {date && <small className="hb-trophy-date">Unlocked {formatDay(date)}</small>}
+              </div>
+              <span className="sr-only">{date ? 'Unlocked' : 'Locked'}</span>
+            </li>
+          )
+        })}
+      </ul>
 
       <h2 className="hb-h2">Your last 12 weeks</h2>
       <div
