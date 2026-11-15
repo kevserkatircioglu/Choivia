@@ -35,7 +35,7 @@ function Sidebar() {
   const navigation = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/planner', label: 'Daily plan', icon: CalendarDays },
-    { to: '/books', label: 'Reading nook', icon: BookMarked },
+    { to: '/books', label: 'Reading book', icon: BookMarked },
     { to: '/profile', label: 'Profile', icon: UserRound },
   ]
 
