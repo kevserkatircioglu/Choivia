@@ -1,15 +1,43 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, Plus, Sprout } from 'lucide-react'
+import { ArrowRight, Check, Download, Plus, Sprout, Upload } from 'lucide-react'
 import { useStored } from '../lib/useStored.js'
 import { TEMPLATES } from '../data/hobbyTemplates.js'
+import { applyAchievements } from '../utils/achievements.js'
 import {
   createHobby,
   hobbyProgress,
   isCheckedToday,
+  isWaiting,
   nextTask,
+  parseBackup,
+  plantStage,
+  todayKey,
   toggleCheckin,
+  totalDays,
+  weekCount,
 } from '../utils/hobbies.js'
+
+const weeklyLabel = (hobby) => `${weekCount(hobby)} of ${hobby.goalPerWeek ?? 3} days this week`
+
+// Check-in'i açar/kapatır, kazanılan başarımları kaydeder ve kısa bir bildirim metni döndürür.
+function useCheckin(hobbies, setHobbies) {
+  const [notice, setNotice] = useState('')
+
+  const toggle = (id) => {
+    const target = hobbies.find((hobby) => hobby.id === id)
+    if (!target) return
+    const { hobby: settled, unlocked } = applyAchievements(toggleCheckin(target))
+    setHobbies(hobbies.map((hobby) => (hobby.id === id ? settled : hobby)))
+    setNotice(
+      unlocked.length
+        ? `🏅 ${target.name}: ${unlocked.map((item) => item.title).join(', ')} unlocked!`
+        : '',
+    )
+  }
+
+  return [toggle, notice]
+}
 
 // Tek dokunuşla "bugün yaptım". Tekrar basınca geri alınır.
 export function CheckinButton({ hobby, onToggle }) {
@@ -31,9 +59,7 @@ export function CheckinButton({ hobby, onToggle }) {
 // Dashboard'da görünen kısa liste.
 export function TodayHobbies({ user }) {
   const [hobbies, setHobbies] = useStored(`choivia:hobbies:${user.id}`, [])
-
-  const toggle = (id) =>
-    setHobbies(hobbies.map((hobby) => (hobby.id === id ? toggleCheckin(hobby) : hobby)))
+  const [toggle, notice] = useCheckin(hobbies, setHobbies)
 
   return (
     <section className="hb-today" aria-labelledby="hb-today-title">
@@ -47,6 +73,8 @@ export function TodayHobbies({ user }) {
         </Link>
       </div>
 
+      <p className="hb-status" role="status">{notice}</p>
+
       {hobbies.length === 0 ? (
         <div className="hb-empty">
           <Sprout size={26} aria-hidden="true" />
@@ -59,6 +87,7 @@ export function TodayHobbies({ user }) {
         <ul className="hb-today-list">
           {hobbies.map((hobby) => {
             const next = nextTask(hobby)
+            const plant = plantStage(totalDays(hobby)).current
             return (
               <li key={hobby.id} className="hb-today-item">
                 <Link to={`/hobbies/${hobby.id}`} className="hb-today-info">
@@ -66,6 +95,12 @@ export function TodayHobbies({ user }) {
                   <span>
                     <strong>{hobby.name}</strong>
                     <small>{next ? `Next: ${next.task.text}` : 'All steps complete 🎉'}</small>
+                    <small>{plant.emoji} {weeklyLabel(hobby)}</small>
+                    {isWaiting(hobby) && (
+                      <small className="hb-waiting">
+                        It’s past {hobby.reminderTime}. Whenever you’re ready 🌿
+                      </small>
+                    )}
                   </span>
                 </Link>
                 <CheckinButton hobby={hobby} onToggle={() => toggle(hobby.id)} />
@@ -84,7 +119,10 @@ export default function Hobbies({ user }) {
   const [selected, setSelected] = useState(null) // template id | 'blank' | null
   const [name, setName] = useState('')
   const [why, setWhy] = useState('')
+  const [goal, setGoal] = useState(3)
+  const [reminder, setReminder] = useState('')
   const [error, setError] = useState('')
+  const [backupMessage, setBackupMessage] = useState('')
 
   function choose(id) {
     setSelected(id)
@@ -103,15 +141,52 @@ export default function Hobbies({ user }) {
     const hobby = createHobby({
       name,
       why,
+      goalPerWeek: Number(goal),
+      reminderTime: reminder,
       emoji: template?.emoji ?? '🌱',
+      templateId: template?.id ?? '',
       stages: template?.stages ?? [{ title: 'First steps', tasks: [] }],
     })
     setHobbies([...hobbies, hobby])
     navigate(`/hobbies/${hobby.id}`)
   }
 
-  const toggle = (id) =>
-    setHobbies(hobbies.map((hobby) => (hobby.id === id ? toggleCheckin(hobby) : hobby)))
+  const [toggle, notice] = useCheckin(hobbies, setHobbies)
+
+  function exportBackup() {
+    const backup = { app: 'choivia', version: 1, exportedAt: new Date().toISOString(), hobbies }
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `choivia-hobbies-${todayKey()}.json`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    setBackupMessage('Backup downloaded. Keep the file somewhere safe.')
+  }
+
+  async function importBackup(event) {
+    const input = event.currentTarget
+    const file = input.files?.[0]
+    input.value = ''
+    if (!file) return
+
+    try {
+      const imported = parseBackup(await file.text())
+      if (!window.confirm(`Import ${imported.length} hobby backup entries? Hobbies with the same id will be replaced.`)) {
+        setBackupMessage('Import canceled. Nothing was changed.')
+        return
+      }
+      const byId = new Map(hobbies.map((hobby) => [hobby.id, hobby]))
+      imported.forEach((hobby) => byId.set(hobby.id, hobby))
+      setHobbies([...byId.values()])
+      setBackupMessage('Backup imported.')
+    } catch {
+      setBackupMessage('That file is not a valid Choivia hobby backup. Nothing was changed.')
+    }
+  }
 
   return (
     <div className="hb-page">
@@ -121,6 +196,8 @@ export default function Hobbies({ user }) {
         <p>Pick a roadmap, take one small step at a time, and check in whenever you practice.</p>
       </header>
 
+      <p className="hb-status" role="status">{notice}</p>
+
       {hobbies.length > 0 && (
         <section aria-labelledby="hb-mine">
           <h2 id="hb-mine" className="hb-h2">My hobbies</h2>
@@ -128,6 +205,7 @@ export default function Hobbies({ user }) {
             {hobbies.map((hobby) => {
               const progress = hobbyProgress(hobby)
               const next = nextTask(hobby)
+              const plant = plantStage(totalDays(hobby)).current
               return (
                 <li key={hobby.id} className="hb-card">
                   <Link to={`/hobbies/${hobby.id}`} className="hb-card-link">
@@ -146,6 +224,7 @@ export default function Hobbies({ user }) {
                         <span style={{ width: `${progress.percent}%` }} />
                       </span>
                       <small>{progress.done} of {progress.total} steps · {progress.percent}%</small>
+                      <small>{plant.emoji} {plant.label} · {weeklyLabel(hobby)}</small>
                     </span>
                   </Link>
                   <CheckinButton hobby={hobby} onToggle={() => toggle(hobby.id)} />
@@ -206,6 +285,24 @@ export default function Hobbies({ user }) {
                 placeholder="e.g. I want to play for my family"
               />
             </label>
+            <div className="hb-form-row">
+              <label>
+                <span>A comfortable weekly goal</span>
+                <select value={goal} onChange={(event) => setGoal(event.target.value)}>
+                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                    <option key={n} value={n}>{n} {n === 1 ? 'day' : 'days'} a week</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Reminder time <em>(optional)</em></span>
+                <input type="time" value={reminder} onChange={(event) => setReminder(event.target.value)} />
+              </label>
+            </div>
+            <p className="hb-hint">
+              Start small. A goal you can keep beats a big one you can’t. Reminders appear on your dashboard,
+              gently, once the time has passed.
+            </p>
             {error && <p id="hb-name-error" className="hb-error" role="alert">{error}</p>}
             <button type="submit" className="hb-primary">
               Create hobby <ArrowRight size={16} />
@@ -213,6 +310,23 @@ export default function Hobbies({ user }) {
           </form>
         )}
       </section>
+
+      <section className="hb-backup" aria-labelledby="hb-backup-title">
+        <h2 id="hb-backup-title" className="hb-h2">Back up your hobbies</h2>
+        <p className="hb-hint">
+          Your data lives in this browser. If you clear your browser data, it is gone. Download a backup now and then.
+        </p>
+        <div className="hb-backup-actions">
+          <button type="button" className="hb-secondary" onClick={exportBackup} disabled={hobbies.length === 0}>
+            <Download size={16} aria-hidden="true" /> Download backup
+          </button>
+          <label className="hb-secondary hb-file">
+            <Upload size={16} aria-hidden="true" /> Import backup
+            <input type="file" accept=".json,application/json" onChange={importBackup} className="sr-only" />
+          </label>
+        </div>
+        {backupMessage && <p className="hb-status" role="status">{backupMessage}</p>}
+      </section>
     </div>
   )
-}
+} 

@@ -1,5 +1,8 @@
-// Hazır hobi yol haritaları. Kullanıcı hepsini sonradan düzenleyebilir.
+// Hazır hobi yol haritaları. Her adım küçük (2-35 dk), isteğe bağlı ipucu içerir.
+// `key` alanı başarımların hangi adıma bağlı olduğunu belirler, kullanıcı görmez.
 // Yeni şablon eklemek için diziye bir nesne eklemek yeterli.
+const t = (key, text, minutes, tip = '') => ({ key, text, minutes, tip })
+
 export const TEMPLATES = [
   {
     id: 'violin',
@@ -8,29 +11,32 @@ export const TEMPLATES = [
     blurb: 'From holding the bow to your first simple melody.',
     stages: [
       {
-        title: 'Posture and bow hold',
+        title: 'Meet your violin',
         tasks: [
-          'Learn the parts of the violin and bow',
-          'Practice the bow hold for 5 minutes',
-          'Practice standing posture and violin position',
-          'Draw the bow across open strings, slowly',
+          t('violin-parts', 'Name the parts: scroll, neck, strings, bridge and bow', 3, 'Find a labelled diagram and point to each part on your own violin.'),
+          t('violin-rosin', 'Rosin your bow lightly', 3, 'A few slow strokes along the hair is enough. Too much rosin sounds scratchy.'),
+          t('bow-hold', 'Practice the bow hold without the violin', 5, 'Thumb bent, fingers relaxed and curved. Holding a pencil the same way is a good warm-up.'),
+          t('violin-posture', 'Practice standing posture and violin position', 5, 'Feet shoulder-width apart, violin resting on the collarbone, shoulders relaxed.'),
+          t('violin-bow-air', 'Draw the bow slowly across an open string', 5, 'Keep the bow parallel to the bridge. Count four slow beats down and four up.'),
         ],
       },
       {
         title: 'Open strings and first notes',
         tasks: [
-          'Learn the names of the four open strings (G D A E)',
-          'Play each open string with long, even bows',
-          'Place your first finger on the A string',
-          'Tune the violin with a tuner app',
+          t('violin-names', 'Learn the four string names: G D A E', 3, 'A mnemonic helps, such as “Good Dogs Always Eat”.'),
+          t('tune', 'Tune your violin with a tuner app', 5, 'Use the fine tuners first and turn the pegs only a tiny bit at a time.'),
+          t('violin-long-bows', 'Play each open string with five long bows', 5),
+          t('finger-one', 'Place your first finger on the A string', 5, 'A small piece of tape on the fingerboard can mark the spot while you learn.'),
+          t('violin-three-notes', 'Play on the A string: open, first finger, open', 5),
         ],
       },
       {
         title: 'Your first melody',
         tasks: [
-          'Learn the notes of a simple song (e.g. Twinkle Twinkle)',
-          'Play the song slowly, one phrase at a time',
-          'Play it all the way through without stopping',
+          t('song-pick', 'Choose a simple song, such as Twinkle Twinkle', 2),
+          t('song-notes', 'Write down the note names for the first phrase', 5),
+          t('song-phrase', 'Play the first phrase slowly', 8, 'Slow is smooth. Speed comes by itself later.'),
+          t('song-through', 'Play the whole song without stopping', 10, 'Keep going after a mistake. Finishing matters more than perfection.'),
         ],
       },
     ],
@@ -42,27 +48,31 @@ export const TEMPLATES = [
     blurb: 'Chords, strumming and your first full song.',
     stages: [
       {
-        title: 'Getting to know the guitar',
+        title: 'Meet your guitar',
         tasks: [
-          'Learn the names of the six strings (E A D G B E)',
-          'Tune the guitar with a tuner app',
-          'Practice holding the guitar and pick',
+          t('g-strings', 'Learn the six string names: E A D G B E', 3, 'Try the mnemonic “Eddie Ate Dynamite, Good Bye Eddie”.'),
+          t('g-tune', 'Tune your guitar with a tuner app', 5, 'Tune from the thickest string to the thinnest.'),
+          t('g-hold', 'Practice holding the guitar and the pick', 5),
+          t('g-pluck', 'Pluck each open string slowly', 3),
         ],
       },
       {
         title: 'First chords',
         tasks: [
-          'Learn the E minor and A minor chords',
-          'Learn C, G and D major chords',
-          'Switch between two chords for 5 minutes',
+          t('g-em', 'Learn the E minor chord and strum all six strings', 5, 'Two fingers on the A and D strings, second fret. Press just behind the fret.'),
+          t('g-am', 'Learn the A minor chord', 5),
+          t('g-c', 'Learn the C major chord', 8, 'It is a stretch at first. Take it slowly and relax your wrist.'),
+          t('g-g', 'Learn the G major chord', 8),
+          t('g-switch', 'Switch between Em and Am for three minutes', 3, 'Aim for clean changes, not speed. Fingers should move together.'),
         ],
       },
       {
         title: 'Strumming and a first song',
         tasks: [
-          'Practice a basic down-up strumming pattern',
-          'Pick an easy song with 3-4 chords',
-          'Play the song from start to finish',
+          t('g-down', 'Strum down on four counts with Em', 5),
+          t('g-pattern', 'Practice a down, down-up, up-down-up strumming pattern', 8),
+          t('g-song-pick', 'Pick a song with three or four chords', 3),
+          t('g-song-through', 'Play the song from start to finish', 10),
         ],
       },
     ],
@@ -76,25 +86,26 @@ export const TEMPLATES = [
       {
         title: 'Lines and shapes',
         tasks: [
-          'Fill one page with straight lines and curves',
-          'Draw circles, squares and triangles freehand',
-          'Draw three simple objects from your desk',
+          t('d-lines', 'Fill half a page with straight lines and curves', 5, 'Draw from your shoulder, not your wrist, for smoother lines.'),
+          t('d-shapes', 'Draw circles, squares and triangles freehand', 5),
+          t('d-objects', 'Draw three objects from your desk without erasing', 10),
+          t('d-contour', 'Draw an object without lifting your pencil', 5, 'Look at the object more than at the paper.'),
         ],
       },
       {
         title: 'Light and shadow',
         tasks: [
-          'Shade a sphere with a light source on one side',
-          'Practice a gradient from light to dark',
-          'Draw a simple object with a cast shadow',
+          t('d-sphere', 'Shade a sphere with the light on one side', 10, 'Darkest part is opposite the light, with a soft edge between.'),
+          t('d-gradient', 'Make a smooth gradient from light to dark', 5),
+          t('d-cube', 'Draw a cube with a cast shadow', 10),
         ],
       },
       {
         title: 'Drawing from life',
         tasks: [
-          'Sketch a plant or a mug in 10 minutes',
-          'Do a quick 2-minute sketch of your hand',
-          'Finish one drawing you are proud of',
+          t('d-gesture', 'Do a two-minute gesture sketch of your hand', 2),
+          t('d-life', 'Sketch a plant or a mug in ten minutes', 10),
+          t('d-finish', 'Finish one drawing you are proud of', 20),
         ],
       },
     ],
@@ -108,25 +119,26 @@ export const TEMPLATES = [
       {
         title: 'Start gently',
         tasks: [
-          'Get comfortable shoes and plan a route',
-          'Do a 20-minute walk-run (1 min run, 2 min walk)',
-          'Repeat the walk-run twice in one week',
+          t('r-shoes', 'Get comfortable shoes and plan a 20-minute route', 5),
+          t('r-walk', 'Go for a 20-minute brisk walk', 20),
+          t('r-first', 'Do a walk-run for 15 minutes: 1 minute running, 2 minutes walking', 15, 'You should be able to talk. If not, slow down.'),
+          t('r-repeat', 'Repeat the walk-run on another day this week', 15),
         ],
       },
       {
         title: 'Build up',
         tasks: [
-          'Run 3 minutes, walk 1 minute, for 20 minutes',
-          'Run for 10 minutes without stopping',
-          'Run for 20 minutes without stopping',
+          t('r-3-1', 'Run 3 minutes, walk 1 minute, for 20 minutes', 20),
+          t('r-10', 'Run 10 minutes without stopping', 10),
+          t('r-20', 'Run 20 minutes without stopping', 20),
         ],
       },
       {
         title: 'Reach 5 km',
         tasks: [
-          'Run 3 km at an easy pace',
-          'Run 4 km at an easy pace',
-          'Run 5 km',
+          t('r-3k', 'Run 3 km at an easy pace', 25),
+          t('r-4k', 'Run 4 km at an easy pace', 30),
+          t('r-5k', 'Run 5 km', 35),
         ],
       },
     ],
