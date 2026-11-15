@@ -8,9 +8,11 @@ import { AVATARS } from '../data/avatars.js'
 
 export default function AuthScreen({ onAuthSuccess }) {
   const [mode, setMode] = useState('register')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [preview, setPreview] = useState(0)
@@ -22,7 +24,6 @@ export default function AuthScreen({ onAuthSuccess }) {
       () => setPreview((n) => (n + 1) % AVATARS.length),
       2000
     )
-
     return () => clearInterval(t)
   }, [])
 
@@ -30,18 +31,8 @@ export default function AuthScreen({ onAuthSuccess }) {
     e.preventDefault()
     setError('')
 
-    const name = username.trim()
-
-    if (!isRegister && name.length < 3) {
-      return setError('Username must be at least 3 characters.')
-    }
-
     if (password.length < 8) {
       return setError('Password must be at least 8 characters.')
-    }
-
-    if (isRegister && password !== confirm) {
-      return setError('Passwords do not match.')
     }
 
     setBusy(true)
@@ -50,13 +41,32 @@ export default function AuthScreen({ onAuthSuccess }) {
       const accounts = readAccounts()
 
       if (isRegister) {
+        const cleanFirstName = firstName.trim()
+        const cleanLastName = lastName.trim()
+        const cleanEmail = email.trim().toLowerCase()
+
+        if (!cleanFirstName || !cleanLastName) {
+          throw new Error('Please enter your first and last name.')
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+          throw new Error('Please enter a valid email address.')
+        }
+
+        if (accounts.some(a => a.email?.toLowerCase() === cleanEmail)) {
+          throw new Error('This email is already registered.')
+        }
+
         const salt = Array.from(
           crypto.getRandomValues(new Uint8Array(16)),
-          (b) => b.toString(16).padStart(2, '0')
+          b => b.toString(16).padStart(2, '0')
         ).join('')
 
         const account = {
           id: crypto.randomUUID(),
+          firstName: cleanFirstName,
+          lastName: cleanLastName,
+          email: cleanEmail,
           username: '',
           avatar: null,
           salt,
@@ -70,16 +80,25 @@ export default function AuthScreen({ onAuthSuccess }) {
 
         onAuthSuccess({
           id: account.id,
+          firstName: account.firstName,
+          lastName: account.lastName,
+          email: account.email,
           username: '',
           avatar: null,
         })
       } else {
+        const name = username.trim()
+
+        if (name.length < 3) {
+          throw new Error('Username must be at least 3 characters.')
+        }
+
         const existing = accounts.find(
-          (a) => a.username?.toLowerCase() === name.toLowerCase()
+          a => a.username?.toLowerCase() === name.toLowerCase()
         )
 
         if (!existing) {
-          throw new Error('Account not found. Check your username or sign up.')
+          throw new Error('Account not found. Check your username.')
         }
 
         if (
@@ -89,10 +108,13 @@ export default function AuthScreen({ onAuthSuccess }) {
           throw new Error('Wrong password, please try again.')
         }
 
-        const known = AVATARS.some((a) => a.id === existing.avatar)
+        const known = AVATARS.some(a => a.id === existing.avatar)
 
         onAuthSuccess({
           id: existing.id,
+          firstName: existing.firstName,
+          lastName: existing.lastName,
+          email: existing.email,
           username: existing.username,
           avatar: known ? existing.avatar : null,
         })
@@ -172,13 +194,49 @@ export default function AuthScreen({ onAuthSuccess }) {
         </div>
 
         <form onSubmit={submit} className="cv-form">
-          {!isRegister && (
+          {isRegister ? (
+            <>
+              <label>
+                First Name
+                <input
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  placeholder="Your first name"
+                  autoComplete="given-name"
+                  required
+                />
+              </label>
+
+              <label>
+                Last Name
+                <input
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  placeholder="Your last name"
+                  autoComplete="family-name"
+                  required
+                />
+              </label>
+
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="Your email address"
+                  autoComplete="email"
+                  required
+                />
+              </label>
+            </>
+          ) : (
             <label>
               Username
               <input
                 autoComplete="username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={e => setUsername(e.target.value)}
                 placeholder="Your username"
                 required
                 minLength={3}
@@ -192,26 +250,12 @@ export default function AuthScreen({ onAuthSuccess }) {
               type="password"
               autoComplete={isRegister ? 'new-password' : 'current-password'}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               placeholder="At least 8 characters"
               required
               minLength={8}
             />
           </label>
-
-          {isRegister && (
-            <label>
-              Confirm password
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Enter your password again"
-                required
-              />
-            </label>
-          )}
 
           {error && (
             <p className="cv-error" role="alert">
