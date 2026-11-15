@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import {
   ArrowRight,
@@ -25,7 +26,6 @@ import {
   Clock3,
   CalendarDays,
   BookMarked,
-  
 } from 'lucide-react'
 import {
   Link,
@@ -59,7 +59,6 @@ import { dayKey, markWatered, touchStreak } from './utils/streak.js'
 import { AVATARS } from './data/avatars.js'
 
 const STORAGE_KEY = 'choivia:v1'
-
 
 const defaultPreferences = {
   explanation: 'detailed',
@@ -120,25 +119,24 @@ const guides = [
     duration: '20–30 min',
     steps: [
       {
-		
-				id: 'role',
-				title: 'Define your target role',
-				description: 'Identify the positions that match your skills, interests and career goals.',
-				details: 'Before applying, define what kind of role you are looking for. Analyse job descriptions and identify the qualifications, technical skills and responsibilities employers expect.',
-				actions: [
-					'Choose your target job title (e.g. Software Engineer, Frontend Developer).',
-					'Identify your preferred industry and company type.',
-					'Review at least two relevant job descriptions.',
-					'List the technical skills and qualifications employers require.',
-					'Compare the requirements with your current skills.',
-					'Identify the skills you need to improve.',
-				],
-			},
-      { 
-				id: 'cv',
-			  title: 'Tailor your CV',
-				description: 'Create a professional CV that highlights your most relevant skills and experience.',
-				details: 'Your CV should demonstrate why you are suitable for the selected position. Adapt your skills, projects, education and experience to the requirements of each job. Use clear formatting and concise descriptions.',
+        id: 'role',
+        title: 'Define your target role',
+        description: 'Identify the positions that match your skills, interests and career goals.',
+        details: 'Before applying, define what kind of role you are looking for. Analyse job descriptions and identify the qualifications, technical skills and responsibilities employers expect.',
+        actions: [
+          'Choose your target job title (e.g. Software Engineer, Frontend Developer).',
+          'Identify your preferred industry and company type.',
+          'Review at least two relevant job descriptions.',
+          'List the technical skills and qualifications employers require.',
+          'Compare the requirements with your current skills.',
+          'Identify the skills you need to improve.',
+        ],
+      },
+      {
+        id: 'cv',
+        title: 'Tailor your CV',
+        description: 'Create a professional CV that highlights your most relevant skills and experience.',
+        details: 'Your CV should demonstrate why you are suitable for the selected position. Adapt your skills, projects, education and experience to the requirements of each job. Use clear formatting and concise descriptions.',
         actions: [
           'Add your contact information and professional profile.',
           'Include your education and relevant academic background.',
@@ -149,12 +147,12 @@ const guides = [
           'Check spelling, grammar and formatting.',
           'Save your final CV as a PDF.',
         ],
-			},
-      { 
-				id: 'letter',
-				title: 'Prepare supporting materials', 
-				description: 'Prepare a tailored cover letter and gather any additional documents requested by the employer.',
-				details: 'Supporting materials help employers understand your motivation and suitability. Your cover letter should explain why you are interested in the position and what you can contribute. Include portfolio links and other documents when relevant.',
+      },
+      {
+        id: 'letter',
+        title: 'Prepare supporting materials',
+        description: 'Prepare a tailored cover letter and gather any additional documents requested by the employer.',
+        details: 'Supporting materials help employers understand your motivation and suitability. Your cover letter should explain why you are interested in the position and what you can contribute. Include portfolio links and other documents when relevant.',
         actions: [
           'Write a cover letter tailored to the company and position.',
           'Explain why you are interested in the role.',
@@ -164,12 +162,12 @@ const guides = [
           'Gather transcripts, certificates or references if requested.',
           'Check that all documents are readable and up to date.',
         ],
-			},
-      { 
-				id: 'apply', 
-				title: 'Submit your application', 
-				description: 'Complete the employer’s application form and submit all required documents.',
-				details: 'Use the official company careers page or the application platform specified in the job listing. Carefully review every field before submission and make sure the correct documents are attached.',
+      },
+      {
+        id: 'apply',
+        title: 'Submit your application',
+        description: 'Complete the employer’s application form and submit all required documents.',
+        details: 'Use the official company careers page or the application platform specified in the job listing. Carefully review every field before submission and make sure the correct documents are attached.',
         actions: [
           'Open the official job application page.',
           'Read the application instructions carefully.',
@@ -180,13 +178,13 @@ const guides = [
           'Submit your application.',
           'Save the confirmation email or application reference.',
         ],
-			},
-      { 
-				id: 'track',
-			  title: 'Record the outcome',
-			  description: 'Track your application status and organise any follow-up activities.',
-				details: 'Keep a record of every application so you can follow its progress. Record the company, position, application date and current status. Update your records when you receive an interview invitation, rejection or offer.',
-				actions: [
+      },
+      {
+        id: 'track',
+        title: 'Record the outcome',
+        description: 'Track your application status and organise any follow-up activities.',
+        details: 'Keep a record of every application so you can follow its progress. Record the company, position, application date and current status. Update your records when you receive an interview invitation, rejection or offer.',
+        actions: [
           'Record the company name and job title.',
           'Save the original job listing URL.',
           'Write down the application submission date.',
@@ -196,7 +194,7 @@ const guides = [
           'Update the status when you receive a response.',
           'Record useful feedback for future applications.',
         ],
-			},
+      },
     ],
   },
   {
@@ -215,7 +213,6 @@ const guides = [
     ],
   },
 ]
-
 
 const detailedGuidance = {
   requirements: 'Check eligibility, required duration, approvals and documents in the latest official department guidance.',
@@ -377,7 +374,6 @@ function GuideCard({ guide, completedIds = [] }) {
     </Link>
   )
 }
-
 
 function Dashboard({ completed, user, streak }) {
   const totalRequired = guides.reduce(
@@ -864,7 +860,7 @@ function GuideDetail({ completed, toggleStep, resetGuide, preferences }) {
             </section>
           )}
         </>
-    )}
+      )}
 
       <div className="detail-list-heading">
         <div><p className="eyebrow">YOUR ACTION PLAN</p><h2>Work through the steps</h2></div>
@@ -943,9 +939,14 @@ function GuideDetail({ completed, toggleStep, resetGuide, preferences }) {
 function App() {
   const navigate = useNavigate()
   const [user, setUser] = useState(() => {
-    try { const value = localStorage.getItem(SESSION_STORAGE_KEY); return value ? JSON.parse(value) : null }
-    catch { return null }
+    try {
+      const value = localStorage.getItem(SESSION_STORAGE_KEY)
+      return value ? JSON.parse(value) : null
+    } catch {
+      return null
+    }
   })
+
   const userStorageKey = user ? `${STORAGE_KEY}:${user.id}` : STORAGE_KEY
   const [savedState, setSavedState] = useState(() => loadSavedState(userStorageKey))
   const [dataMessage, setDataMessage] = useState('')
@@ -970,7 +971,11 @@ function App() {
     const updated = { ...user, ...changes }
     setUser(updated)
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updated))
-    const accounts = readAccounts().map((account) => account.id === user.id ? { ...account, ...changes } : account)
+
+    const accounts = readAccounts().map((account) =>
+      account.id === user.id ? { ...account, ...changes } : account
+    )
+
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(accounts))
   }
 
@@ -1010,7 +1015,6 @@ function App() {
       completed: { ...previous.completed, [guideId]: [] },
     }))
   }
-
 
   function completeQuestionnaire(answers) {
     const nextPreferences = buildPreferencesFromAnswers(answers)
@@ -1138,16 +1142,42 @@ function App() {
   }
 
   if (!user) return <AuthScreen onAuthSuccess={handleAuthSuccess} />
-  if (!AVATARS.some((a) => a.id === user.avatar)) return <ProfileSetup user={user} onDone={(avatar) => updateUserProfile({ avatar })} />
+
+  // Kullanıcı adı veya avatar eksikse profil oluşturma ekranını aç.
+  if (
+    !user.username?.trim() ||
+    !AVATARS.some((a) => a.id === user.avatar)
+  ) {
+    return (
+      <ProfileSetup
+        user={user}
+        onDone={(changes) => updateUserProfile(changes)}
+      />
+    )
+  }
+
   const needsWater = streak && !watered && streak.watered !== dayKey()
 
   return (
     <div className="app-shell">
       <SaplingTransition />
-      {needsWater && <WateringOverlay days={streak.current} onDone={() => { markWatered(user.id); setWatered(true) }} />}
+      {needsWater && (
+        <WateringOverlay
+          days={streak.current}
+          onDone={() => {
+            markWatered(user.id)
+            setWatered(true)
+          }}
+        />
+      )}
       <Sidebar />
       <div className="app-main">
-        <AppBar user={user} streak={streak} onPick={(avatar) => updateUserProfile({ avatar })} onLogout={handleLogout} />
+        <AppBar
+          user={user}
+          streak={streak}
+          onPick={(avatar) => updateUserProfile({ avatar })}
+          onLogout={handleLogout}
+        />
         <main className="page-container">
           <Routes>
             <Route path="/" element={<Dashboard completed={completed} user={user} streak={streak} />} />
