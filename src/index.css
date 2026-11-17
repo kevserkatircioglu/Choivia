@@ -70,3 +70,427 @@ select:focus-visible {
   color: #1f352d;
   background: #dce9ca;
 }
+
+/* Time row fix */
+.cv-ev-time {
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.cv-time-inputs {
+  align-items: center;
+  gap: 6px;
+}
+
+.cv-time-number {
+  display: block;
+}
+
+.cv-time-number-control {
+  height: 44px;
+  border-radius: 10px;
+}
+
+.cv-time-number-control:focus-within {
+  border-color: #6e9565;
+}
+
+.cv-time-number-control input {
+  width: 40px;
+  height: 42px;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cv-time-stepper {
+  width: 24px;
+}
+
+.cv-time-stepper button {
+  height: 21px;
+  min-height: 0;
+  min-width: 24px;
+}
+
+.cv-time-separator {
+  padding-bottom: 0;
+}
+
+/* Single time box with one shared stepper */
+.cv-time-box {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  overflow: hidden;
+  border: 1px solid #dce6d6;
+  border-radius: 12px;
+  background: #fff;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.cv-time-box:focus-within {
+  border-color: #6e9565;
+  box-shadow: 0 0 0 3px #6e956526;
+}
+
+.cv-time-box input {
+  box-sizing: border-box;
+  width: 46px;
+  height: 44px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  color: #315f47;
+  font: 700 20px 'DM Sans', sans-serif;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.cv-time-box input:focus {
+  background: #eef5e8;
+}
+
+.cv-time-box .cv-time-separator {
+  padding: 0;
+  font-size: 20px;
+}
+
+.cv-time-box .cv-time-stepper {
+  display: grid;
+  align-self: stretch;
+  width: 28px;
+  margin-left: 4px;
+  border-left: 1px solid #edf1e9;
+}
+
+.cv-time-box .cv-time-stepper button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 22px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #718b6e;
+  cursor: pointer;
+}
+
+.cv-time-box .cv-time-stepper button:hover {
+  background: #edf4e8;
+  color: #315f47;
+}
+
+/* Time box: remove leaked focus line */
+.cv-time-box input,
+.cv-time-box input:focus,
+.cv-time-box input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+.cv-time-box input:focus {
+  background: transparent;
+  color: #1f4a33;
+}
+
+.cv-time-box input::selection {
+  background: #cfe3c4;
+}
+
+/* Bigger, easier-to-spot event markers */
+
+/* Year view (mini calendars): small but visible */
+.cv-event-markers {
+  bottom: 2px;
+  gap: 3px;
+}
+.cv-event-markers i {
+  width: 5px;
+  height: 5px;
+}
+
+/* Month view: clearly visible dots with a white ring */
+.cv-mgrid.big .cv-cell {
+  padding-bottom: 14px;
+}
+.cv-mgrid.big .cv-event-markers {
+  bottom: 8px;
+  gap: 5px;
+}
+.cv-mgrid.big .cv-event-markers i {
+  width: 8px;
+  height: 8px;
+  box-shadow: 0 0 0 1.5px #fff;
+}
+.cv-mgrid.big .cv-cell.today .cv-event-markers i {
+  box-shadow: none;
+}
+
+/* Days with your own events get a stronger tint and a soft border */
+.cv-mgrid.big .cv-cell.has:not(.today) {
+  background: #eadcf9;
+  box-shadow: inset 0 0 0 1.5px #d6c1ef;
+  font-weight: 700;
+}
+
+/* Taller month cells */
+.cv-mgrid.big .cv-cell {
+  height: 76px;
+}
+.cv-mgrid.big .cv-event-markers {
+  bottom: 12px;
+}
+@media (max-width: 520px) {
+  .cv-mgrid.big .cv-cell {
+    height: 56px;
+  }
+  .cv-mgrid.big .cv-event-markers {
+    bottom: 8px;
+  }
+}
+
+/* Calendar legend */
+.cv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 16px 4px 0;
+  padding: 0;
+  list-style: none;
+  color: #6b786e;
+  font-size: 13px;
+  font-weight: 600;
+}
+.cv-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.cv-legend-dot {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.cv-legend-dot.mine { background: #d66d3d; }
+.cv-legend-dot.holiday { background: #6e9565; }
+.cv-legend-dot.memorial { background: #9174bd; }
+.cv-legend-dot.special { background: #b18a52; }
+
+/* Category colors */
+.cat-general     { --dot:#6e9565; --tint:#e6f0df; --edge:#c9dcbd; }
+.cat-birthday    { --dot:#e0709a; --tint:#fbe4ee; --edge:#f1c3d6; }
+.cat-study       { --dot:#5b86c7; --tint:#e3ecf9; --edge:#c3d4ee; }
+.cat-goal        { --dot:#d66d3d; --tint:#fde9dc; --edge:#f5cdb5; }
+.cat-celebration { --dot:#9a6fd0; --tint:#efe4fa; --edge:#d9c5ef; }
+.cat-work        { --dot:#3f8f94; --tint:#dff1f1; --edge:#b9dddd; }
+.cat-health      { --dot:#d9534f; --tint:#fce3e1; --edge:#f2bfbc; }
+.cat-travel      { --dot:#d9a21f; --tint:#fbf0d2; --edge:#efdba0; }
+
+/* Day cell tint follows the category */
+.cv-mgrid .cv-cell.has[class*="cat-"]:not(.today) {
+  background: var(--tint);
+}
+.cv-mgrid.big .cv-cell.has[class*="cat-"]:not(.today) {
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1.5px var(--edge);
+}
+
+/* Personal event dots use the category color */
+.cv-event-markers i.cv-personal-marker {
+  background: var(--dot);
+}
+
+/* Special days become hollow rings */
+.cv-event-markers i.cv-special-marker {
+  box-sizing: border-box;
+  background: transparent;
+  border: 1.5px solid #6e9565;
+  box-shadow: none;
+}
+.cv-event-markers i.cv-special-marker.special-memorial { border-color: #9174bd; }
+.cv-event-markers i.cv-special-marker.special-special  { border-color: #b18a52; }
+.cv-cell.today .cv-event-markers i.cv-special-marker   { border-color: #fff; }
+
+/* Legend */
+.cv-legend-dot[class*="cat-"] { background: var(--dot); }
+.cv-legend-ring {
+  box-sizing: border-box;
+  display: block;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid #8a8f7a;
+  border-radius: 50%;
+}
+
+/* Legend toggle button */
+.cv-legend-toggle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffffb8;
+  color: #55745a;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.cv-legend-toggle:hover {
+  background: #fff;
+}
+.cv-legend-toggle.on {
+  background: #2f5d45;
+  color: #fff;
+}
+
+/* Legend fade-in */
+.cv-legend {
+  animation: cv-legend-in .22s ease-out both;
+}
+.cv-legend li {
+  animation: cv-legend-item-in .26s ease-out both;
+}
+.cv-legend li:nth-child(1) { animation-delay: .00s; }
+.cv-legend li:nth-child(2) { animation-delay: .03s; }
+.cv-legend li:nth-child(3) { animation-delay: .06s; }
+.cv-legend li:nth-child(4) { animation-delay: .09s; }
+.cv-legend li:nth-child(5) { animation-delay: .12s; }
+.cv-legend li:nth-child(6) { animation-delay: .15s; }
+.cv-legend li:nth-child(7) { animation-delay: .18s; }
+.cv-legend li:nth-child(8) { animation-delay: .21s; }
+.cv-legend li:nth-child(9) { animation-delay: .24s; }
+
+@keyframes cv-legend-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes cv-legend-item-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-legend, .cv-legend li { animation: none; }
+}
+
+/* Legend fade-out */
+.cv-legend.closing {
+  animation: cv-legend-out .2s ease-in both;
+}
+.cv-legend.closing li {
+  animation: none;
+}
+@keyframes cv-legend-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cv-legend.closing { animation: none; }
+}
+
+/* Year view: compact cards so the whole year fits */
+.cv-year {
+  gap: 12px;
+}
+.cv-year .cv-mini {
+  padding: 8px 10px 10px;
+}
+.cv-year .cv-mini-title {
+  min-height: 30px;
+  min-width: 0;
+  min-height: 30px;
+  font-size: 14px;
+}
+.cv-year .cv-mgrid {
+  gap: 2px;
+}
+.cv-year .cv-cell {
+  aspect-ratio: auto;
+  height: 26px;
+  min-height: 0;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.cv-year .cv-event-markers {
+  bottom: 1px;
+}
+
+/* Tighter header while the year view is open */
+.cv-cal:has(.cv-year) .cv-cal-head {
+  padding: 14px 20px;
+  margin-bottom: 12px;
+}
+
+/* Wide screens: 6 columns x 2 rows */
+@media (min-width: 1500px) {
+  .cv-cal:has(.cv-year) {
+    max-width: 1320px;
+  }
+  .cv-year {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+/* Year view: scale cells with the screen height so the page is filled */
+.cv-year .cv-cell {
+  height: clamp(26px, calc((100dvh - 470px) / 15), 40px);
+}
+.cv-year .cv-mini {
+  padding: 10px 12px 14px;
+}
+.cv-year .cv-mini-title {
+  min-height: 34px;
+  font-size: 15px;
+}
+.cv-year .cv-cell {
+  font-size: 13px;
+}
+.cv-year .cv-event-markers i {
+  width: 6px;
+  height: 6px;
+}
+.cv-year .cv-event-markers {
+  bottom: 2px;
+}
+
+/* Year view: corrected sizing (12 rows, wide screens only) */
+.cv-year .cv-cell {
+  height: 28px;
+}
+@media (min-width: 1500px) {
+  .cv-year .cv-cell {
+    height: clamp(28px, calc((100dvh - 440px) / 12 - 2px), 44px);
+  }
+}
+
+/* Year view: rows share the card height evenly (wide screens) */
+@media (min-width: 1500px) {
+  .cv-year {
+    grid-auto-rows: max(260px, calc((100dvh - 270px) / 2));
+  }
+  .cv-year .cv-mini {
+    display: flex;
+    flex-direction: column;
+  }
+  .cv-year .cv-mgrid {
+    flex: 1;
+    grid-template-rows: auto;
+    grid-auto-rows: 1fr;
+    row-gap: 3px;
+  }
+  .cv-year .cv-cell {
+    height: auto;
+    min-height: 0;
+    background: #f6f9f2;
+  }
+  .cv-year .cv-cell.today {
+    background: #2f5d45;
+  }
+}

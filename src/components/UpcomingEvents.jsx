@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Clock3 } from 'lucide-react'
 import Icon from './Icon.jsx'
 import { useStored } from '../lib/useStored.js'
 import { dayKey } from '../utils/streak.js'
@@ -22,7 +22,16 @@ export default function UpcomingEvents({ user }) {
             return (
               <li key={e.id} className={e.in <= 1 ? 'soon' : ''}>
                 <span className="cv-up-date"><b>{Number(d)}</b>{MON[Number(m) - 1]}</span>
-                <span className="cv-up-title"><Icon name={e.emoji || '⭐'} size={16} /> {e.title}</span>
+                <span className="cv-up-title">
+                  <Icon name={e.emoji || '⭐'} size={16} />
+                  <span className="cv-up-name">{e.title}</span>
+                  {e.time && (
+                    <small className="cv-up-time">
+                      <Clock3 size={13} />
+                      {e.time}
+                    </small>
+                  )}
+                </span>
                 <span className="cv-up-chip">{whenLabel(e.in)}</span>
               </li>
             )
