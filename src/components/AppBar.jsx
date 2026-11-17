@@ -1,17 +1,16 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Flame, LogOut, Settings2, X } from 'lucide-react'
+import { LogOut, Settings2, X } from 'lucide-react'
 import { Avatar, AvatarPicker } from './Avatar.jsx'
 import Logo from './Logo.jsx'
 
-export default function AppBar({ user, streak, onPick, onLogout }) {
+export default function AppBar({ user, onPick, onLogout }) {
   const [open, setOpen] = useState(false)
   return (
     <>
       <header className="cv-appbar">
         <Link to="/" className="cv-appbar-logo" aria-label="Choivia home"><Logo size={32} /><b>choivia</b></Link>
         <span className="cv-spacer" />
-        <span className="cv-streak-chip" aria-label={`${streak?.current || 1} day streak`}><Flame size={18} /> {streak?.current || 1}</span>
         <button type="button" className="cv-me" onClick={() => setOpen(true)} aria-label="Open profile"><Avatar id={user.avatar} size={40} /></button>
       </header>
       {open && (

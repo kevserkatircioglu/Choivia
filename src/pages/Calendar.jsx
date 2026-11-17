@@ -1,11 +1,22 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react'
+import Icon from '../components/Icon.jsx'
 import { useStored } from '../lib/useStored.js'
 import { dayKey } from '../utils/streak.js'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 const EMOJIS = ['⭐', '🎂', '📚', '🎯', '🎉', '💼', '🩺', '✈️']
+const EVENT_ICON_LABELS = {
+  '⭐': 'General',
+  '🎂': 'Birthday',
+  '📚': 'Study',
+  '🎯': 'Goal',
+  '🎉': 'Celebration',
+  '💼': 'Work',
+  '🩺': 'Health',
+  '✈️': 'Travel',
+}
 const pad = (n) => String(n).padStart(2, '0')
 const keyOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`
 const cellsOf = (y, m) => [...Array((new Date(y, m, 1).getDay() + 6) % 7).fill(null), ...Array.from({ length: new Date(y, m + 1, 0).getDate() }, (_, i) => i + 1)]
@@ -28,9 +39,21 @@ export default function Calendar({ user }) {
         if (!d) return <span key={i} />
         const k = keyOf(year, m, d); const list = byDate[k]
         return (
-          <button key={i} type="button" className={`cv-cell${k === today ? ' today' : ''}${list ? ' has' : ''}${k === sel ? ' sel' : ''}`}
-            onClick={() => setSel(k)} aria-label={`${d} ${MONTHS[m]}${list ? `, ${list.length} events` : ''}`}>
-            {d}{list && (big ? <small>{list[0].emoji}</small> : <u />)}
+          <button
+            key={i}
+            type="button"
+            className={`cv-cell${k === today ? ' today' : ''}${list ? ' has' : ''}${k === sel ? ' sel' : ''}`}
+            onClick={() => setSel(k)}
+            aria-label={`${d} ${MONTHS[m]} ${year}${k === today ? ', today' : ''}${list ? `, ${list.length} events` : ''}`}
+          >
+            {d}
+            {list && (
+              <small className="cv-event-markers" aria-hidden="true">
+                {Array.from({ length: Math.min(list.length, 3) }, (_, marker) => (
+                  <i key={marker} />
+                ))}
+              </small>
+            )}
           </button>
         )
       })}
@@ -46,13 +69,39 @@ export default function Calendar({ user }) {
   return (
     <div className="cv-cal">
       <header className="cv-cal-head">
-        <div><p className="eyebrow">YOUR YEAR</p><h1>Calendar</h1><p>Tap a day to plan something special.</p></div>
-        <div className="cv-cal-nav">
-          {month === null ? (
-            <><button type="button" onClick={() => setYear(year - 1)} aria-label="Previous year"><ChevronLeft size={20} /></button><b>{year}</b><button type="button" onClick={() => setYear(year + 1)} aria-label="Next year"><ChevronRight size={20} /></button></>
-          ) : (
-            <><button type="button" onClick={() => move(-1)} aria-label="Previous month"><ChevronLeft size={20} /></button><b>{MONTHS[month].slice(0, 3)} {year}</b><button type="button" onClick={() => move(1)} aria-label="Next month"><ChevronRight size={20} /></button></>
-          )}
+        <div><p className="eyebrow">YOUR YEAR</p><h1>Calendar</h1><p>Your events and plans.</p></div>
+        <div className="cv-cal-tools">
+          <div className="cv-view-toggle" role="group" aria-label="Calendar view">
+            <button
+              type="button"
+              aria-pressed={month === null}
+              onClick={() => setMonth(null)}
+            >
+              Year
+            </button>
+            <button
+              type="button"
+              aria-pressed={month !== null}
+              onClick={() => setMonth(month ?? now.getMonth())}
+            >
+              Month
+            </button>
+          </div>
+          <div className="cv-cal-nav">
+            {month === null ? (
+              <>
+                <button type="button" onClick={() => setYear(year - 1)} aria-label="Previous year"><ChevronLeft size={20} /></button>
+                <b>{year}</b>
+                <button type="button" onClick={() => setYear(year + 1)} aria-label="Next year"><ChevronRight size={20} /></button>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={() => move(-1)} aria-label="Previous month"><ChevronLeft size={20} /></button>
+                <b>{MONTHS[month].slice(0, 3)} {year}</b>
+                <button type="button" onClick={() => move(1)} aria-label="Next month"><ChevronRight size={20} /></button>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -67,7 +116,6 @@ export default function Calendar({ user }) {
         </div>
       ) : (
         <section className="cv-month">
-          <button type="button" className="cv-back" onClick={() => setMonth(null)}>← Whole year</button>
           <h2>{MONTHS[month]}</h2>
           {grid(month, true)}
         </section>
@@ -80,12 +128,12 @@ export default function Calendar({ user }) {
             <h2>{new Date(`${sel}T00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
             <ul className="cv-ev-list">
               {(byDate[sel] || []).map((ev) => (
-                <li key={ev.id}><span>{ev.emoji}</span><b>{ev.title}</b><button type="button" onClick={() => setEvents(events.filter((x) => x.id !== ev.id))} aria-label="Remove event">×</button></li>
+                <li key={ev.id}><span className="cv-event-icon"><Icon name={ev.emoji || '⭐'} size={18} /></span><b>{ev.title}</b><button type="button" onClick={() => setEvents(events.filter((x) => x.id !== ev.id))} aria-label="Remove event">×</button></li>
               ))}
               {!byDate[sel] && <li className="cv-ev-empty">Nothing planned for this day.</li>}
             </ul>
             <form onSubmit={add} className="cv-ev-form">
-              <div className="cv-emoji-row" role="radiogroup" aria-label="Pick an icon">{EMOJIS.map((x) => <button key={x} type="button" role="radio" aria-checked={emoji === x} className={emoji === x ? 'on' : ''} onClick={() => setEmoji(x)}>{x}</button>)}</div>
+              <div className="cv-emoji-row" role="radiogroup" aria-label="Pick an icon">{EMOJIS.map((x) => <button key={x} type="button" role="radio" aria-label={EVENT_ICON_LABELS[x]} aria-checked={emoji === x} className={emoji === x ? 'on' : ''} onClick={() => setEmoji(x)}><Icon name={x} size={18} /></button>)}</div>
               <div className="cv-ev-row"><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add an event…" maxLength={60} aria-label="Event title" /><button type="submit" aria-label="Add event"><Plus size={20} /></button></div>
             </form>
           </div>

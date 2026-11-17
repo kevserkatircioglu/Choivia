@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowRight, ArrowUpRight, BookMarked, CalendarDays, Clock3, Home as HomeIcon, Leaf, Settings2, Sprout } from 'lucide-react'
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import './App.css'
@@ -7,7 +7,6 @@ import AuthScreen from './components/AuthScreen.jsx'
 import AppBar from './components/AppBar.jsx'
 import Logo from './components/Logo.jsx'
 import ProfileSetup from './components/ProfileSetup.jsx'
-import WateringOverlay from './components/WateringOverlay.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import SaplingTransition from './components/SaplingTransition.jsx'
 import ScenicHero from './components/ScenicHero.jsx'
@@ -20,21 +19,23 @@ import Planner from './pages/Planner.jsx'
 import Books from './pages/Books.jsx'
 import { useStored } from './lib/useStored.js'
 import { AUTH_STORAGE_KEY, SESSION_STORAGE_KEY, readAccounts } from './lib/auth.js'
-import { dayKey, markWatered, touchStreak } from './utils/streak.js'
+import { dayKey } from './utils/streak.js'
 import { AVATARS } from './data/avatars.js'
 import './hobbies.css'
 import Hobbies, { TodayHobbies } from './pages/Hobbies.jsx'
 import HobbyDetail from './pages/HobbyDetail.jsx'
+import { weeklyActivity } from './utils/hobbies.js'
+import { getMotionPreference, shouldReduceMotion } from './utils/motionPreference.js'
 
 const PLAN_HOURS = Array.from({ length: 13 }, (_, i) => i + 8)
 
-function Sidebar({ streak }) {
+function Sidebar() {
   const navigation = [
     { to: '/', label: 'Home', icon: HomeIcon, end: true },
     { to: '/planner', label: 'Daily plan', icon: Clock3 },
     { to: '/calendar', label: 'Calendar', icon: CalendarDays },
     { to: '/hobbies', label: 'Hobbies', icon: Sprout },
-    { to: '/books', label: 'Reading book', icon: BookMarked },
+    { to: '/books', label: 'Reading list', icon: BookMarked },
     { to: '/profile', label: 'Preferences', icon: Settings2 },
   ]
 
@@ -60,24 +61,20 @@ function Sidebar({ streak }) {
         ))}
       </nav>
 
-      <div className="cv-side-card">
-        <span className="cv-side-flame" aria-hidden="true">🔥</span>
-        <b>{streak?.current || 1} day streak</b>
-        <small>Best: {streak?.best || 1}</small>
-        <p>Come back tomorrow and your plant will bloom again 🌱</p>
-      </div>
     </aside>
   )
 }
 
-function Home({ user, streak }) {
+function Home({ user }) {
   const [plan] = useStored(`choivia:plan:${user.id}:${dayKey()}`, {})
+  const [hobbies] = useStored(`choivia:hobbies:${user.id}`, [])
 
   const items = PLAN_HOURS.filter((h) => plan[h]).map((h) => ({ hour: h, ...plan[h] }))
   const total = items.length
   const done = items.filter((item) => item.done).length
   const percent = total ? Math.round((done / total) * 100) : 0
   const next = items.find((item) => !item.done)
+  const activity = weeklyActivity(hobbies)
 
   return (
     <div className="dashboard-page dashboard-v2">
@@ -105,7 +102,7 @@ function Home({ user, streak }) {
         total={total}
         nextTitle={next?.text}
         nextTo="/planner"
-        streak={streak}
+        weeklyActivity={activity}
       />
 
       <div className="dashboard-content-grid-v2">
@@ -116,13 +113,6 @@ function Home({ user, streak }) {
 
         <aside className="dashboard-side-column-v2">
           <UpcomingEvents user={user} />
-          <section className="dashboard-note-panel-v2">
-            <span className="note-flower">✳</span>
-            <div>
-              <strong>A gentle reminder</strong>
-              <p>You do not have to figure everything out today. Start wherever you are.</p>
-            </div>
-          </section>
         </aside>
       </div>
 
@@ -146,13 +136,36 @@ function App() {
       return null
     }
   })
-  const [streak, setStreak] = useState(() => (user ? touchStreak(user.id) : null))
-  const [watered, setWatered] = useState(false)
+
+  useEffect(() => {
+    if (!user?.id) {
+      document.documentElement.classList.remove('choivia-reduce-motion')
+      return undefined
+    }
+
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+
+    const updateMotion = () => {
+      const preference = getMotionPreference(user.id)
+      const reduce = shouldReduceMotion(preference, media.matches)
+
+      document.documentElement.classList.toggle('choivia-reduce-motion', reduce)
+    }
+
+    updateMotion()
+
+    window.addEventListener('choivia:motion-preference-change', updateMotion)
+    media.addEventListener('change', updateMotion)
+
+    return () => {
+      window.removeEventListener('choivia:motion-preference-change', updateMotion)
+      media.removeEventListener('change', updateMotion)
+    }
+  }, [user?.id])
 
   function handleAuthSuccess(nextUser) {
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(nextUser))
     setUser(nextUser)
-    setStreak(touchStreak(nextUser.id))
   }
 
   function handleLogout() {
@@ -170,29 +183,25 @@ function App() {
   }
 
   if (!user) return <AuthScreen onAuthSuccess={handleAuthSuccess} />
-  if (!AVATARS.some((a) => a.id === user.avatar)) {
-    return <ProfileSetup user={user} onDone={(avatar) => updateUserProfile({ avatar })} />
+  if (
+    !user.username?.trim() ||
+    !AVATARS.some((a) => a.id === user.avatar)
+  ) {
+    return (
+      <ProfileSetup
+        user={user}
+        onDone={(changes) => updateUserProfile(changes)}
+      />
+    )
   }
-
-  const needsWater = streak && !watered && streak.watered !== dayKey()
 
   return (
     <div className="app-shell">
       <SaplingTransition />
-      {needsWater && (
-        <WateringOverlay
-          days={streak.current}
-          onDone={() => {
-            markWatered(user.id)
-            setWatered(true)
-          }}
-        />
-      )}
-      <Sidebar streak={streak} />
+      <Sidebar />
       <div className="app-main">
         <AppBar
           user={user}
-          streak={streak}
           onPick={(avatar) => updateUserProfile({ avatar })}
           onLogout={handleLogout}
         />
@@ -200,13 +209,13 @@ function App() {
           <Routes>
             <Route path="/hobbies" element={<Hobbies user={user} />} />
             <Route path="/hobbies/:hobbyId" element={<HobbyDetail user={user} />} />
-            <Route path="/" element={<Home user={user} streak={streak} />} />
+            <Route path="/" element={<Home user={user} />} />
             <Route path="/calendar" element={<Calendar user={user} />} />
             <Route path="/planner" element={<Planner user={user} />} />
             <Route path="/books" element={<Books user={user} />} />
             <Route
               path="/profile"
-              element={<Preferences user={user} streak={streak} onUpdateUser={updateUserProfile} onLogout={handleLogout} />}
+              element={<Preferences user={user} onUpdateUser={updateUserProfile} onLogout={handleLogout} />}
             />
             <Route
               path="*"

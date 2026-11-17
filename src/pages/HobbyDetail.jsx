@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Heart, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Heart, Trash2 } from 'lucide-react'
+import Icon from '../components/Icon.jsx'
+import PlantIllustration from '../components/PlantIllustration.jsx'
 import { useStored } from '../lib/useStored.js'
 import { CheckinButton } from './Hobbies.jsx'
-import { achievementsFor, applyAchievements } from '../utils/achievements.js'
+import { achievementProgress, achievementsFor, applyAchievements } from '../utils/achievements.js'
 import {
   MILESTONES,
   MOODS,
@@ -13,6 +15,7 @@ import {
   hobbyProgress,
   isCheckedToday,
   latestMilestone,
+  milestoneTitle,
   nextMilestone,
   nextTask,
   plantStage,
@@ -31,6 +34,33 @@ const MINUTE_CHIPS = [10, 20, 30, 45, 60]
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 const isTiny = (task) => task.text.startsWith('Just 2 minutes')
 
+const ACHIEVEMENT_GROUPS = [
+  {
+    id: 'consistency',
+    label: 'Consistency',
+    matches: (id) => id === 'first-day' || id === 'comeback' || id.startsWith('days-'),
+  },
+  {
+    id: 'roadmap',
+    label: 'Roadmap & skills',
+    matches: (id) =>
+      ['first-step', 'tiny-win', 'stage-one', 'roadmap-done'].includes(id) ||
+      /^(violin|guitar|drawing|running)-/.test(id),
+  },
+  {
+    id: 'practice-log',
+    label: 'Practice log',
+    matches: (id) =>
+      ['first-note', 'hard-day', 'long-session'].includes(id) ||
+      id.startsWith('hours-'),
+  },
+  {
+    id: 'weekly',
+    label: 'Weekly goals',
+    matches: (id) => id.startsWith('goal-'),
+  },
+]
+
 export default function HobbyDetail({ user }) {
   const { hobbyId } = useParams()
   const navigate = useNavigate()
@@ -44,6 +74,8 @@ export default function HobbyDetail({ user }) {
   const [note, setNote] = useState('')
   const [logError, setLogError] = useState('')
   const [showAll, setShowAll] = useState(false)
+  const [achievementFilter, setAchievementFilter] = useState('all')
+  const [openAchievementGroup, setOpenAchievementGroup] = useState('consistency')
 
   const hobby = hobbies.find((item) => item.id === hobbyId)
 
@@ -74,6 +106,26 @@ export default function HobbyDetail({ user }) {
   const hours = Math.round((totalMinutes(hobby) / 60) * 10) / 10
   const trophies = achievementsFor(hobby)
   const unlockedCount = trophies.filter((item) => hobby.achievements?.[item.id]).length
+  const achievementPercent = trophies.length
+    ? Math.round((unlockedCount / trophies.length) * 100)
+    : 0
+
+  const achievementGroups = ACHIEVEMENT_GROUPS.map((group) => {
+    const allItems = trophies.filter((item) => group.matches(item.id))
+    const items = allItems.filter((item) => {
+      const unlocked = Boolean(hobby.achievements?.[item.id])
+      return achievementFilter === 'all' ||
+        (achievementFilter === 'unlocked' && unlocked) ||
+        (achievementFilter === 'locked' && !unlocked)
+    })
+
+    return {
+      ...group,
+      items,
+      total: allItems.length,
+      unlocked: allItems.filter((item) => hobby.achievements?.[item.id]).length,
+    }
+  }).filter((group) => group.items.length > 0)
 
   // Her değişiklik buradan geçer: yeni başarım varsa kaydedilir ve kutlanır.
   function save(updated) {
@@ -148,7 +200,7 @@ export default function HobbyDetail({ user }) {
     const count = totalDays(updated)
     setStatus(
       MILESTONES.includes(count)
-        ? `🎉 Milestone! ${plural(count, 'practice day')} for ${hobby.name}.`
+        ? `Milestone! ${plural(count, 'practice day')} for ${hobby.name}.`
         : `Nice work. That’s ${plural(count, 'practice day')} so far.`,
     )
   }
@@ -180,7 +232,7 @@ export default function HobbyDetail({ user }) {
       </Link>
 
       <header className="hb-detail-head">
-        <span className="hb-emoji hb-emoji-xl" aria-hidden="true">{hobby.emoji}</span>
+        <span className="hb-emoji hb-emoji-xl" aria-hidden="true"><Icon name={hobby.emoji} size={46} /></span>
         <div>
           <h1>{hobby.name}</h1>
           {hobby.why && (
@@ -198,7 +250,7 @@ export default function HobbyDetail({ user }) {
             <ul>
               {celebration.map((item) => (
                 <li key={item.id}>
-                  <span className="hb-trophy-emoji" aria-hidden="true">{item.emoji}</span>
+                  <span className="hb-trophy-emoji" aria-hidden="true"><Icon name={item.emoji} size={28} /></span>
                   <div>
                     <strong>{item.title}</strong>
                     <small>{item.description}</small>
@@ -223,7 +275,7 @@ export default function HobbyDetail({ user }) {
         <div className="hb-week" aria-label="This week, Monday to Sunday">
           {thisWeek(hobby).map((day) => (
             <span key={day.key} className={`${day.done ? 'on' : ''}${day.isToday ? ' today' : ''}${day.future ? ' future' : ''}`}>
-              <i aria-hidden="true">{day.done ? '✓' : ''}</i>
+              <i aria-hidden="true">{day.done && <Icon name="check" size={14} />}</i>
               <small>{day.label}</small>
               <span className="sr-only">{day.key}: {day.done ? 'practiced' : 'not practiced'}</span>
             </span>
@@ -232,7 +284,7 @@ export default function HobbyDetail({ user }) {
 
         <p className="hb-goal-line">
           {doneThisWeek >= goal
-            ? '🌟 You met your goal this week.'
+            ? <><Icon name="star" size={16} /> You met your goal this week.</>
             : `${plural(goal - doneThisWeek, 'more day')} to reach your weekly goal.`}
           {streak > 0 && ` · ${plural(streak, 'week')} in a row`}
         </p>
@@ -282,7 +334,7 @@ export default function HobbyDetail({ user }) {
                   aria-pressed={mood === item.id}
                   onClick={() => setMood(mood === item.id ? '' : item.id)}
                 >
-                  <span aria-hidden="true">{item.emoji}</span> {item.label}
+                  <Icon name={item.emoji} size={18} /> {item.label}
                 </button>
               ))}
             </div>
@@ -305,7 +357,7 @@ export default function HobbyDetail({ user }) {
       )}
 
       <section className="hb-plant" aria-label="Your plant">
-        <span className="hb-plant-emoji" aria-hidden="true">{plant.emoji}</span>
+        <PlantIllustration stage={plant.key} size={76} className="hb-plant-visual" />
         <div>
           <strong>{plant.label}</strong>
           <small>
@@ -323,16 +375,24 @@ export default function HobbyDetail({ user }) {
             <span style={{ width: `${plantPercent}%` }} />
           </span>
           <small>
-            {nextPlant
-              ? `${plural(nextPlant.min - days, 'day')} until ${nextPlant.emoji} ${nextPlant.label}`
-              : 'Fully grown. Beautiful.'}
+            {nextPlant ? (
+              <>
+                {plural(nextPlant.min - days, 'day')} until{' '}
+                <PlantIllustration stage={nextPlant.key} size={20} className="hb-inline-plant" />{' '}
+                {nextPlant.label}
+              </>
+            ) : 'Fully grown. Beautiful.'}
           </small>
         </div>
       </section>
 
       <p className="hb-milestone">
-        {latest ? `🏅 Latest milestone: ${plural(latest, 'practice day')}.` : '🏅 Your first milestone is one practice day away.'}
-        {upcoming && ` Next: ${upcoming} (${plural(upcoming - days, 'day')} to go).`}
+        <Icon name="trophy" size={17} />
+        {upcoming
+          ? <>Next milestone: {milestoneTitle(upcoming)}, {plural(upcoming - days, 'day')} to go.</>
+          : latest
+            ? `Latest milestone: ${plural(latest, 'practice day')}.`
+            : 'Your first milestone is one practice day away.'}
       </p>
 
       <section className="hb-next" aria-label="Next small step">
@@ -345,7 +405,7 @@ export default function HobbyDetail({ user }) {
               {next.task.minutes > 0 && ` · about ${next.task.minutes} min`}
               {` · ${progress.percent}% of the roadmap done`}
             </p>
-            {next.task.tip && <p className="hb-tip-line">💡 {next.task.tip}</p>}
+            {next.task.tip && <p className="hb-tip-line"><Icon name="help" size={16} /> {next.task.tip}</p>}
             <div className="hb-next-actions">
               <button
                 type="button"
@@ -362,7 +422,7 @@ export default function HobbyDetail({ user }) {
             </div>
           </>
         ) : (
-          <h2>You have completed every step. 🎉 Add new steps below to keep growing.</h2>
+          <h2><Icon name="party-popper" size={22} /> You have completed every step. Add new steps below to keep growing.</h2>
         )}
       </section>
 
@@ -443,25 +503,131 @@ export default function HobbyDetail({ user }) {
         <button type="submit" className="hb-secondary">Add stage</button>
       </form>
 
-      <h2 className="hb-h2">
-        Achievements <small className="hb-count">{unlockedCount} of {trophies.length}</small>
-      </h2>
-      <ul className="hb-trophies">
-        {trophies.map((item) => {
-          const date = hobby.achievements?.[item.id]
-          return (
-            <li key={item.id} className={date ? 'on' : ''}>
-              <span className="hb-trophy-emoji" aria-hidden="true">{date ? item.emoji : '🔒'}</span>
-              <div>
-                <strong>{item.title}</strong>
-                <small>{item.description}</small>
-                {date && <small className="hb-trophy-date">Unlocked {formatDay(date)}</small>}
-              </div>
-              <span className="sr-only">{date ? 'Unlocked' : 'Locked'}</span>
-            </li>
-          )
-        })}
-      </ul>
+      <section className="hb-achievement-section" aria-labelledby="hb-achievements-title">
+        <div className="hb-achievement-top">
+          <div>
+            <h2 id="hb-achievements-title" className="hb-h2">Achievements</h2>
+            <p>{unlockedCount} of {trophies.length} unlocked</p>
+          </div>
+          <strong>{achievementPercent}%</strong>
+        </div>
+
+        <div
+          className="hb-achievement-progress"
+          role="progressbar"
+          aria-label="Achievement progress"
+          aria-valuemin={0}
+          aria-valuemax={trophies.length}
+          aria-valuenow={unlockedCount}
+        >
+          <span style={{ width: `${achievementPercent}%` }} />
+        </div>
+
+        <div className="hb-achievement-filters" role="group" aria-label="Filter achievements">
+          {[
+            { id: 'all', label: 'All', count: trophies.length },
+            { id: 'unlocked', label: 'Unlocked', count: unlockedCount },
+            { id: 'locked', label: 'Locked', count: trophies.length - unlockedCount },
+          ].map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              className={achievementFilter === filter.id ? 'active' : ''}
+              aria-pressed={achievementFilter === filter.id}
+              onClick={() => setAchievementFilter(filter.id)}
+            >
+              {filter.label} <span>{filter.count}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="hb-achievement-groups">
+          {achievementGroups.map((group) => {
+            const isOpen = openAchievementGroup === group.id
+
+            return (
+              <section key={group.id} className="hb-achievement-group">
+                <button
+                  type="button"
+                  className="hb-achievement-group-toggle"
+                  aria-expanded={isOpen}
+                  onClick={() => setOpenAchievementGroup(isOpen ? null : group.id)}
+                >
+                  <span>
+                    <strong>{group.label}</strong>
+                    <small>{group.unlocked} of {group.total} unlocked</small>
+                  </span>
+                  <ChevronDown
+                    size={19}
+                    className={isOpen ? 'expanded' : ''}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                {isOpen && (
+                  <ul className="hb-trophies">
+                    {group.items.map((item) => {
+                      const date = hobby.achievements?.[item.id]
+                      const unlocked = Boolean(date)
+                      const progress = unlocked
+                        ? null
+                        : achievementProgress(hobby, item)
+
+                      return (
+                        <li key={item.id} className={unlocked ? 'on' : 'locked'}>
+                          <span className="hb-trophy-emoji" aria-hidden="true">
+                            <Icon name={item.emoji} size={26} />
+                          </span>
+                          <div>
+                            <strong>{item.title}</strong>
+                            <small>{item.description}</small>
+                            {unlocked ? (
+                              <small className="hb-trophy-date">Unlocked {formatDay(date)}</small>
+                            ) : progress?.current !== undefined ? (
+                              <div className="hb-trophy-progress">
+                                <div className="hb-trophy-progress-label">
+                                  <small>
+                                    {progress.current}/{progress.target} {progress.unit}
+                                  </small>
+                                  <small>
+                                    {Math.round((progress.current / progress.target) * 100)}%
+                                  </small>
+                                </div>
+                                <div
+                                  className="hb-trophy-progress-bar"
+                                  role="progressbar"
+                                  aria-label={`${item.title} progress`}
+                                  aria-valuemin={0}
+                                  aria-valuemax={progress.target}
+                                  aria-valuenow={progress.current}
+                                >
+                                  <span
+                                    style={{
+                                      width: `${(progress.current / progress.target) * 100}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <small className="hb-trophy-locked">
+                                {progress?.hint || 'Keep practicing.'}
+                              </small>
+                            )}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </section>
+            )
+          })}
+
+          {achievementGroups.length === 0 && (
+            <p className="hb-hint">There are no achievements in this filter yet.</p>
+          )}
+        </div>
+      </section>
 
       <h2 className="hb-h2">Your last 12 weeks</h2>
       <div
@@ -496,7 +662,7 @@ export default function HobbyDetail({ user }) {
                     <strong>{formatDay(entry.date)}</strong>
                     <span>
                       {entry.minutes > 0 && `${entry.minutes} min`}
-                      {moodInfo && ` ${moodInfo.emoji} ${moodInfo.label}`}
+                      {moodInfo && <> <Icon name={moodInfo.emoji} size={15} /> {moodInfo.label}</>}
                     </span>
                     <button
                       type="button"

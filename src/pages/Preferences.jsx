@@ -1,15 +1,27 @@
 import { useState } from 'react'
-import { Check, KeyRound, LogOut, Pencil } from 'lucide-react'
+import { Accessibility, Check, Download, KeyRound, LogOut, Pencil, Upload } from 'lucide-react'
 import { Avatar, AvatarPicker } from '../components/Avatar.jsx'
 import { changePassword, renameAccount } from '../lib/auth.js'
+import { useStored } from '../lib/useStored.js'
+import { parseBackup, todayKey } from '../utils/hobbies.js'
+import { getMotionPreference, saveMotionPreference } from '../utils/motionPreference.js'
 
-function Msg({ m }) { return m ? <p className={`cv-msg ${m.ok ? 'ok' : 'bad'}`} role="status">{m.text}</p> : null }
+function Msg({ m }) {
+  if (!m) return null
+  const tone = m.ok ? 'ok' : m.neutral ? 'neutral' : 'bad'
+  return <p className={`cv-msg ${tone}`} role="status">{m.text}</p>
+}
 
-export default function Preferences({ user, streak, onUpdateUser, onLogout }) {
+export default function Preferences({ user, onUpdateUser, onLogout }) {
   const [name, setName] = useState(user.username)
   const [nameMsg, setNameMsg] = useState(null)
   const [pw, setPw] = useState({ cur: '', next: '', again: '' })
   const [pwMsg, setPwMsg] = useState(null)
+  const [hobbies, setHobbies] = useStored(`choivia:hobbies:${user.id}`, [])
+  const [backupMsg, setBackupMsg] = useState(null)
+  const [motionPreference, setMotionPreference] = useState(
+    () => getMotionPreference(user.id),
+  )
 
   function saveName(e) {
     e.preventDefault()
@@ -25,12 +37,107 @@ export default function Preferences({ user, streak, onUpdateUser, onLogout }) {
     setPw({ cur: '', next: '', again: '' }); setPwMsg({ ok: true, text: 'Password changed.' })
   }
 
+  function exportBackup() {
+    const backup = {
+      app: 'choivia',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      hobbies,
+    }
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {
+      type: 'application/json',
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `choivia-hobbies-${todayKey()}.json`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    setBackupMsg({ ok: true, text: 'Backup downloaded. Keep the file somewhere safe.' })
+  }
+
+  async function importBackup(event) {
+    const input = event.currentTarget
+    const file = input.files?.[0]
+    input.value = ''
+    if (!file) return
+
+    try {
+      const imported = parseBackup(await file.text())
+      if (!window.confirm(`Import ${imported.length} hobby backup entries? Hobbies with the same id will be replaced.`)) {
+        setBackupMsg({ neutral: true, text: 'Import canceled. Nothing was changed.' })
+        return
+      }
+
+      const byId = new Map(hobbies.map((hobby) => [hobby.id, hobby]))
+      imported.forEach((hobby) => byId.set(hobby.id, hobby))
+      setHobbies([...byId.values()])
+      setBackupMsg({ ok: true, text: 'Backup imported.' })
+    } catch {
+      setBackupMsg({
+        text: 'That file is not a valid Choivia hobby backup. Nothing was changed.',
+      })
+    }
+  }
+
+  function updateMotionPreference(event) {
+    const value = saveMotionPreference(user.id, event.target.value)
+    setMotionPreference(value)
+    window.dispatchEvent(new Event('choivia:motion-preference-change'))
+  }
+
   return (
     <div className="cv-pref">
       <header className="cv-pref-hero">
         <Avatar id={user.avatar} size={84} className="cv-hero-avatar" />
-        <div><p className="eyebrow">PREFERENCES</p><h1>{user.username}</h1><p>🔥 {streak?.current || 1} day streak · best {streak?.best || 1}</p></div>
+        <div><p className="eyebrow">PREFERENCES</p><h1>{user.username}</h1></div>
       </header>
+
+      <section className="cv-pref-card">
+        <h2><Download size={18} /> Hobby data</h2>
+        <p>Your hobbies are stored in this browser. Export a backup regularly so you can restore them later.</p>
+        <div className="cv-pref-data-actions">
+          <button
+            type="button"
+            className="cv-pref-btn"
+            onClick={exportBackup}
+            disabled={hobbies.length === 0}
+          >
+            <Download size={16} /> Download backup
+          </button>
+          <label className="cv-pref-btn cv-pref-file">
+            <Upload size={16} /> Import backup
+            <input
+              type="file"
+              accept=".json,application/json"
+              onChange={importBackup}
+              className="sr-only"
+            />
+          </label>
+        </div>
+        <Msg m={backupMsg} />
+      </section>
+
+      <section className="cv-pref-card">
+        <h2><Accessibility size={18} /> Accessibility</h2>
+        <p>Choose how much movement you want in the interface.</p>
+        <label className="cv-pref-setting">
+          <span>Motion preference</span>
+          <select
+            className="cv-pref-select"
+            value={motionPreference}
+            onChange={updateMotionPreference}
+          >
+            <option value="system">Use device setting</option>
+            <option value="reduce">Reduce motion</option>
+          </select>
+        </label>
+        <small className="cv-pref-setting-hint">
+          Device setting follows your operating system’s accessibility preference.
+        </small>
+      </section>
 
       <section className="cv-pref-card">
         <h2>Your buddy</h2><p>Tap an icon to change your avatar.</p>

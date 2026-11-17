@@ -227,7 +227,7 @@
 
 .page-container {
   width: 100%;
-  max-width: 1440px;
+  max-width: 1480px;
   margin: 0 auto;
   padding: 46px 54px 25px;
 }
@@ -3884,7 +3884,7 @@ body,
 }
 
 .page-container {
-  max-width: 1600px;
+  max-width: 1480px;
   padding: 34px 48px 32px;
 }
 

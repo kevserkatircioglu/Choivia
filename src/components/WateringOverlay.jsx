@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Volume2, VolumeX } from 'lucide-react'
+import { Droplet, Flame, Volume2, VolumeX } from 'lucide-react'
 import { playChime, playPour, unlockAudio } from '../utils/sfx.js'
 
 const FLOWERS = [
@@ -29,7 +29,7 @@ export default function WateringOverlay({ days, onDone }) {
     <div className={`cv-water${reduced ? ' cv-rm' : ''}`} role="dialog" aria-label="Streak celebration" aria-live="polite">
       <button type="button" className="cv-water-sound" onClick={() => { unlockAudio(); setSound(!sound) }} aria-label={sound ? 'Mute sound' : 'Unmute sound'}>{sound ? <Volume2 size={20} /> : <VolumeX size={20} />}</button>
       <button type="button" className="cv-water-skip" onClick={onDone}>Skip</button>
-      <h2 className="cv-water-title">Time to water your plant 💧</h2>
+      <h2 className="cv-water-title">Time to water your plant <Droplet size={20} aria-hidden="true" /></h2>
 
       <svg className="cv-svg" viewBox="0 0 300 350" aria-hidden="true">
         <defs>
@@ -77,7 +77,7 @@ export default function WateringOverlay({ days, onDone }) {
 
       <div className="cv-zoom">
         <div className="cv-rays" /><div className="cv-glow" />
-        <div className="cv-zoom-num"><span className="cv-flame">🔥</span><b>{days}</b></div>
+        <div className="cv-zoom-num"><Flame className="cv-flame" size={64} aria-hidden="true" /><b>{days}</b></div>
         <h3>day streak!</h3>
         <p>{note(days)}</p>
       </div>

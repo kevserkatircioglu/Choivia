@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, Download, Plus, Sprout, Upload } from 'lucide-react'
+import { ArrowRight, Check, Plus } from 'lucide-react'
+import Icon from '../components/Icon.jsx'
+import PlantIllustration from '../components/PlantIllustration.jsx'
 import { useStored } from '../lib/useStored.js'
 import { TEMPLATES } from '../data/hobbyTemplates.js'
 import { applyAchievements } from '../utils/achievements.js'
@@ -10,9 +12,7 @@ import {
   isCheckedToday,
   isWaiting,
   nextTask,
-  parseBackup,
   plantStage,
-  todayKey,
   toggleCheckin,
   totalDays,
   weekCount,
@@ -31,7 +31,7 @@ function useCheckin(hobbies, setHobbies) {
     setHobbies(hobbies.map((hobby) => (hobby.id === id ? settled : hobby)))
     setNotice(
       unlocked.length
-        ? `🏅 ${target.name}: ${unlocked.map((item) => item.title).join(', ')} unlocked!`
+        ? `${target.name}: ${unlocked.map((item) => item.title).join(', ')} unlocked!`
         : '',
     )
   }
@@ -77,7 +77,7 @@ export function TodayHobbies({ user }) {
 
       {hobbies.length === 0 ? (
         <div className="hb-empty">
-          <Sprout size={26} aria-hidden="true" />
+          <Icon name="sprout" size={26} />
           <p>You have no hobbies yet. Pick one and get a ready-made roadmap.</p>
           <Link to="/hobbies" className="hb-primary">
             Start a hobby <ArrowRight size={16} />
@@ -91,14 +91,14 @@ export function TodayHobbies({ user }) {
             return (
               <li key={hobby.id} className="hb-today-item">
                 <Link to={`/hobbies/${hobby.id}`} className="hb-today-info">
-                  <span className="hb-emoji" aria-hidden="true">{hobby.emoji}</span>
+                  <span className="hb-emoji" aria-hidden="true"><Icon name={hobby.emoji} size={22} /></span>
                   <span>
                     <strong>{hobby.name}</strong>
-                    <small>{next ? `Next: ${next.task.text}` : 'All steps complete 🎉'}</small>
-                    <small>{plant.emoji} {weeklyLabel(hobby)}</small>
+                    <small>{next ? `Next: ${next.task.text}` : 'All steps complete'}</small>
+                    <small><PlantIllustration stage={plant.key} size={20} className="hb-inline-plant" /> {weeklyLabel(hobby)}</small>
                     {isWaiting(hobby) && (
                       <small className="hb-waiting">
-                        It’s past {hobby.reminderTime}. Whenever you’re ready 🌿
+                        It’s past {hobby.reminderTime}. Whenever you’re ready.
                       </small>
                     )}
                   </span>
@@ -122,7 +122,6 @@ export default function Hobbies({ user }) {
   const [goal, setGoal] = useState(3)
   const [reminder, setReminder] = useState('')
   const [error, setError] = useState('')
-  const [backupMessage, setBackupMessage] = useState('')
 
   function choose(id) {
     setSelected(id)
@@ -153,40 +152,12 @@ export default function Hobbies({ user }) {
 
   const [toggle, notice] = useCheckin(hobbies, setHobbies)
 
-  function exportBackup() {
-    const backup = { app: 'choivia', version: 1, exportedAt: new Date().toISOString(), hobbies }
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `choivia-hobbies-${todayKey()}.json`
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-    setBackupMessage('Backup downloaded. Keep the file somewhere safe.')
-  }
-
-  async function importBackup(event) {
-    const input = event.currentTarget
-    const file = input.files?.[0]
-    input.value = ''
-    if (!file) return
-
-    try {
-      const imported = parseBackup(await file.text())
-      if (!window.confirm(`Import ${imported.length} hobby backup entries? Hobbies with the same id will be replaced.`)) {
-        setBackupMessage('Import canceled. Nothing was changed.')
-        return
-      }
-      const byId = new Map(hobbies.map((hobby) => [hobby.id, hobby]))
-      imported.forEach((hobby) => byId.set(hobby.id, hobby))
-      setHobbies([...byId.values()])
-      setBackupMessage('Backup imported.')
-    } catch {
-      setBackupMessage('That file is not a valid Choivia hobby backup. Nothing was changed.')
-    }
-  }
+  const usedTemplateIds = new Set(
+    hobbies.map((hobby) => hobby.templateId).filter(Boolean),
+  )
+  const availableTemplates = TEMPLATES.filter(
+    (template) => !usedTemplateIds.has(template.id),
+  )
 
   return (
     <div className="hb-page">
@@ -209,10 +180,10 @@ export default function Hobbies({ user }) {
               return (
                 <li key={hobby.id} className="hb-card">
                   <Link to={`/hobbies/${hobby.id}`} className="hb-card-link">
-                    <span className="hb-emoji hb-emoji-lg" aria-hidden="true">{hobby.emoji}</span>
+                    <span className="hb-emoji hb-emoji-lg" aria-hidden="true"><Icon name={hobby.emoji} size={34} /></span>
                     <span className="hb-card-main">
                       <strong>{hobby.name}</strong>
-                      <small>{next ? `Next: ${next.task.text}` : 'All steps complete 🎉'}</small>
+                      <small>{next ? `Next: ${next.task.text}` : 'All steps complete'}</small>
                       <span
                         className="hb-bar"
                         role="progressbar"
@@ -224,7 +195,7 @@ export default function Hobbies({ user }) {
                         <span style={{ width: `${progress.percent}%` }} />
                       </span>
                       <small>{progress.done} of {progress.total} steps · {progress.percent}%</small>
-                      <small>{plant.emoji} {plant.label} · {weeklyLabel(hobby)}</small>
+                      <small><PlantIllustration stage={plant.key} size={20} className="hb-inline-plant" /> {plant.label} · {weeklyLabel(hobby)}</small>
                     </span>
                   </Link>
                   <CheckinButton hobby={hobby} onToggle={() => toggle(hobby.id)} />
@@ -236,10 +207,20 @@ export default function Hobbies({ user }) {
       )}
 
       <section aria-labelledby="hb-new">
-        <h2 id="hb-new" className="hb-h2">{hobbies.length ? 'Add another hobby' : 'Choose a hobby to start'}</h2>
+        <h2 id="hb-new" className="hb-h2">
+          {hobbies.length
+            ? availableTemplates.length ? 'Add another hobby' : 'Create your own hobby'
+            : 'Choose a hobby to start'}
+        </h2>
 
-        <div className="hb-templates" role="group" aria-label="Hobby templates">
-          {TEMPLATES.map((template) => (
+        {availableTemplates.length === 0 && hobbies.length > 0 && (
+          <p className="hb-hint">
+            You’ve explored all the ready-made templates. You can still create something of your own.
+          </p>
+        )}
+
+        <div className="hb-templates" role="group" aria-label="Available hobby templates">
+          {availableTemplates.map((template) => (
             <button
               key={template.id}
               type="button"
@@ -247,7 +228,7 @@ export default function Hobbies({ user }) {
               aria-pressed={selected === template.id}
               onClick={() => choose(template.id)}
             >
-              <span className="hb-emoji hb-emoji-lg" aria-hidden="true">{template.emoji}</span>
+              <span className="hb-emoji hb-emoji-lg" aria-hidden="true"><Icon name={template.emoji} size={34} /></span>
               <strong>{template.name}</strong>
               <small>{template.blurb}</small>
             </button>
@@ -311,22 +292,6 @@ export default function Hobbies({ user }) {
         )}
       </section>
 
-      <section className="hb-backup" aria-labelledby="hb-backup-title">
-        <h2 id="hb-backup-title" className="hb-h2">Back up your hobbies</h2>
-        <p className="hb-hint">
-          Your data lives in this browser. If you clear your browser data, it is gone. Download a backup now and then.
-        </p>
-        <div className="hb-backup-actions">
-          <button type="button" className="hb-secondary" onClick={exportBackup} disabled={hobbies.length === 0}>
-            <Download size={16} aria-hidden="true" /> Download backup
-          </button>
-          <label className="hb-secondary hb-file">
-            <Upload size={16} aria-hidden="true" /> Import backup
-            <input type="file" accept=".json,application/json" onChange={importBackup} className="sr-only" />
-          </label>
-        </div>
-        {backupMessage && <p className="hb-status" role="status">{backupMessage}</p>}
-      </section>
     </div>
   )
 } 

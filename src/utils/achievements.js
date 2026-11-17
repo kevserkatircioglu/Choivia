@@ -33,6 +33,7 @@ const byTask = (id, emoji, title, description, key) => ({
   emoji,
   title,
   description,
+  key,
   test: (hobby) => hasDoneKey(hobby, key),
 })
 
@@ -83,6 +84,132 @@ export const TEMPLATE_ACHIEVEMENTS = {
     byTask('running-20', '⚡', 'Twenty Non-Stop', 'Run 20 minutes without stopping.', 'r-20'),
     byTask('running-5k', '🏅', '5K Finisher', 'Run 5 km.', 'r-5k'),
   ],
+}
+
+
+// Calculate meaningful partial progress for locked achievements.
+// These values are display-only and never change unlock conditions.
+export function achievementProgress(hobby, achievement) {
+  const id = achievement.id
+  const stages = Array.isArray(hobby.stages) ? hobby.stages : []
+  const tasks = stages.flatMap((stage) =>
+    Array.isArray(stage.tasks) ? stage.tasks : [],
+  )
+  const sessions = Array.isArray(hobby.sessions) ? hobby.sessions : []
+  const days = new Set(
+    Array.isArray(hobby.checkins) ? hobby.checkins : [],
+  ).size
+
+  const progress = (current, target, unit) => ({
+    current: Math.min(Math.max(0, current), target),
+    target,
+    unit,
+  })
+
+  const oneStep = (condition, unit) =>
+    progress(condition ? 1 : 0, 1, unit)
+
+  if (id === 'first-day') {
+    return progress(days, 1, 'practice days')
+  }
+
+  if (id === 'first-step') {
+    return oneStep(tasks.some((task) => task.done), 'roadmap steps')
+  }
+
+  if (id === 'tiny-win') {
+    const count = tasks.filter(
+      (task) => task.done && task.text?.startsWith('Just 2 minutes'),
+    ).length
+    return progress(count, 1, 'tiny steps')
+  }
+
+  if (id === 'first-note') {
+    return oneStep(
+      sessions.some((session) => session.note?.trim()),
+      'practice notes',
+    )
+  }
+
+  if (id === 'hard-day') {
+    return oneStep(
+      sessions.some((session) => session.mood === 'hard'),
+      'hard-day sessions',
+    )
+  }
+
+  if (id.startsWith('days-')) {
+    const target = Number(id.slice(5))
+    return Number.isFinite(target)
+      ? progress(days, target, 'practice days')
+      : { hint: 'Keep practicing.' }
+  }
+
+  if (id === 'long-session') {
+    const longest = Math.max(0, ...sessions.map((session) => session.minutes || 0))
+    return progress(longest, 45, 'minutes in one session')
+  }
+
+  if (id === 'hours-5' || id === 'hours-10') {
+    const totalMinutes = sessions.reduce(
+      (sum, session) => sum + (session.minutes || 0),
+      0,
+    )
+    const target = id === 'hours-5' ? 300 : 600
+    return progress(totalMinutes, target, 'total minutes')
+  }
+
+  if (id === 'goal-week') {
+    const goal = hobby.goalPerWeek ?? 3
+    return progress(weekCount(hobby), goal, 'days this week')
+  }
+
+  if (id === 'goal-streak-4') {
+    return progress(weeksStreak(hobby), 4, 'consecutive weeks')
+  }
+
+  if (id === 'comeback') {
+    return {
+      hint: 'Return after a break of 3 days or more.',
+    }
+  }
+
+  if (id === 'stage-one') {
+    const candidates = stages
+      .map((stage) => {
+        const stageTasks = Array.isArray(stage.tasks) ? stage.tasks : []
+        return {
+          current: stageTasks.filter((task) => task.done).length,
+          target: stageTasks.length,
+        }
+      })
+      .filter((stage) => stage.target > 0)
+
+    const best = candidates.reduce(
+      (previous, current) =>
+        current.current / current.target > previous.current / previous.target
+          ? current
+          : previous,
+      { current: 0, target: 1 },
+    )
+
+    return progress(best.current, best.target, 'steps in a stage')
+  }
+
+  if (id === 'roadmap-done') {
+    return progress(
+      tasks.filter((task) => task.done).length,
+      Math.max(tasks.length, 1),
+      'roadmap steps',
+    )
+  }
+
+  if (achievement.key) {
+    const task = tasks.find((item) => item.key === achievement.key)
+    return oneStep(task?.done, 'related steps')
+  }
+
+  return { hint: 'Complete the related activity to unlock this.' }
 }
 
 export const achievementsFor = (hobby) => [

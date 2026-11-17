@@ -21,11 +21,11 @@ export const MOODS = [
 export const MILESTONES = [1, 3, 7, 14, 30, 50, 100]
 
 const PLANT_STAGES = [
-  { min: 0, emoji: '🌱', label: 'Seed' },
-  { min: 3, emoji: '🌿', label: 'Sprout' },
-  { min: 10, emoji: '🪴', label: 'Growing' },
-  { min: 25, emoji: '🌳', label: 'Flourishing' },
-  { min: 50, emoji: '🌸', label: 'In bloom' },
+  { min: 0, key: 'seed', emoji: '🌱', label: 'Seed' },
+  { min: 3, key: 'sprout', emoji: '🌿', label: 'Sprout' },
+  { min: 10, key: 'growing', emoji: '🪴', label: 'Growing' },
+  { min: 25, key: 'flourishing', emoji: '🌳', label: 'Flourishing' },
+  { min: 50, key: 'bloom', emoji: '🌸', label: 'In bloom' },
 ]
 
 export function createHobby({
@@ -146,6 +146,19 @@ export function plantStage(total) {
 export const latestMilestone = (total) => [...MILESTONES].reverse().find((m) => m <= total) ?? null
 export const nextMilestone = (total) => MILESTONES.find((m) => m > total) ?? null
 
+const MILESTONE_TITLES = Object.freeze({
+  1: 'First practice',
+  3: 'Three days in',
+  7: 'One week of practice',
+  14: 'Two weeks of practice',
+  30: 'One month of practice',
+  50: '50 days of practice',
+  100: '100 days of practice',
+})
+
+export const milestoneTitle = (value) =>
+  MILESTONE_TITLES[value] ?? `${value} practice days`
+
 /* ---------- Haftalık hedef (Pazartesi-Pazar) ---------- */
 
 function startOfWeek(date = new Date()) {
@@ -174,6 +187,34 @@ export function thisWeek(hobby) {
 }
 
 export const weekCount = (hobby) => thisWeek(hobby).filter((day) => day.done).length
+
+// Count unique practice days across all hobbies for the current Monday-Sunday week.
+export function weeklyActivity(hobbies = [], now = new Date()) {
+  const checkins = new Set(
+    (Array.isArray(hobbies) ? hobbies : []).flatMap((hobby) =>
+      Array.isArray(hobby?.checkins)
+        ? hobby.checkins.filter((key) => typeof key === 'string')
+        : [],
+    ),
+  )
+
+  const today = toKey(now)
+  const days = weekKeys(startOfWeek(now)).map(({ date, key }) => {
+    const future = key > today
+    return {
+      key,
+      label: date.toLocaleDateString('en', { weekday: 'short' }),
+      done: !future && checkins.has(key),
+      isToday: key === today,
+      future,
+    }
+  })
+
+  return {
+    activeDays: days.filter((day) => day.done).length,
+    days,
+  }
+}
 
 // Üst üste kaç hafta hedef tutturuldu. Devam eden hafta henüz bitmediği için seriyi bozmaz.
 export function weeksStreak(hobby) {
