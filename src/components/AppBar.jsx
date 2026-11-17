@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { LogOut, Settings2, X } from 'lucide-react'
 import { Avatar, AvatarPicker } from './Avatar.jsx'
 import Logo from './Logo.jsx'
+import NotificationBell from './NotificationBell.jsx'
 
 export default function AppBar({ user, onPick, onLogout }) {
   const [open, setOpen] = useState(false)
@@ -11,6 +12,7 @@ export default function AppBar({ user, onPick, onLogout }) {
       <header className="cv-appbar">
         <Link to="/" className="cv-appbar-logo" aria-label="Choivia home"><Logo size={32} /><b>choivia</b></Link>
         <span className="cv-spacer" />
+        <NotificationBell uid={user.id} />
         <button type="button" className="cv-me" onClick={() => setOpen(true)} aria-label="Open profile"><Avatar id={user.avatar} size={40} /></button>
       </header>
       {open && (
