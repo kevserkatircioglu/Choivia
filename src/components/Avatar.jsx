@@ -9,13 +9,14 @@ export function Avatar({ id, size = 48, pose, className = '' }) {
   )
 }
 
-export function AvatarPicker({ value, onChange }) {
+// Avatars sit side by side in a wrapping row (compact = smaller, for the sign-up screen).
+export function AvatarPicker({ value, onChange, compact }) {
   return (
-    <div className="cv-avatar-grid" role="radiogroup" aria-label="Choose avatar">
+    <div className={`px-avatars${compact ? ' compact' : ''}`} role="radiogroup" aria-label="Choose avatar">
       {AVATARS.map((a) => (
         <button key={a.id} type="button" role="radio" aria-checked={value === a.id}
-          className={`cv-avatar-pick${value === a.id ? ' selected' : ''}`} onClick={() => onChange(a.id)} aria-label={a.name}>
-          <Avatar id={a.id} size={64} />
+          className={`px-avatar-pick${value === a.id ? ' on' : ''}`} onClick={() => onChange(a.id)} aria-label={a.name}>
+          <Avatar id={a.id} size={compact ? 46 : 54} />
         </button>
       ))}
     </div>

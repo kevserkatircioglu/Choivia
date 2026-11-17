@@ -1,21 +1,25 @@
 import { useState } from 'react'
-import { ArrowRight, ArrowUpRight, BookMarked, CalendarDays, Clock3, Home as HomeIcon, Leaf, Settings2, Sprout } from 'lucide-react'
-import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
+import { ArrowRight, ArrowUpRight, BarChart3, BookHeart, BookMarked, CalendarDays, Clock3, Home as HomeIcon, Leaf, Settings2, Sprout } from 'lucide-react'
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import './App.css'
 import './choivia-extra.css'
+import './choivia-pro.css'
 import AuthScreen from './components/AuthScreen.jsx'
 import AppBar from './components/AppBar.jsx'
 import Logo from './components/Logo.jsx'
 import ProfileSetup from './components/ProfileSetup.jsx'
 import WateringOverlay from './components/WateringOverlay.jsx'
 import BottomNav from './components/BottomNav.jsx'
-import SaplingTransition from './components/SaplingTransition.jsx'
+import RouteTransition from './components/RouteTransition.jsx'
 import ScenicHero from './components/ScenicHero.jsx'
 import { Avatar } from './components/Avatar.jsx'
 import Calendar from './pages/Calendar.jsx'
 import Preferences from './pages/Preferences.jsx'
 import TodayPlan from './components/TodayPlan.jsx'
-import UpcomingEvents from './components/UpcomingEvents.jsx'
+import { ComingUp, StepsCard } from './components/HomeWidgets.jsx'
+import Diary from './pages/Diary.jsx'
+import Stats from './pages/Stats.jsx'
+import useSteps, { StepsContext } from './lib/useSteps.js'
 import Planner from './pages/Planner.jsx'
 import Books from './pages/Books.jsx'
 import { useStored } from './lib/useStored.js'
@@ -26,13 +30,15 @@ import './hobbies.css'
 import Hobbies, { TodayHobbies } from './pages/Hobbies.jsx'
 import HobbyDetail from './pages/HobbyDetail.jsx'
 
-const PLAN_HOURS = Array.from({ length: 13 }, (_, i) => i + 8)
+const PLAN_HOURS = Array.from({ length: 16 }, (_, i) => i + 7) // same 07:00–22:00 range as the Planner
 
 function Sidebar({ streak }) {
   const navigation = [
     { to: '/', label: 'Home', icon: HomeIcon, end: true },
     { to: '/planner', label: 'Daily plan', icon: Clock3 },
     { to: '/calendar', label: 'Calendar', icon: CalendarDays },
+    { to: '/diary', label: 'Diary', icon: BookHeart },
+    { to: '/stats', label: 'Statistics', icon: BarChart3 },
     { to: '/hobbies', label: 'Hobbies', icon: Sprout },
     { to: '/books', label: 'Reading book', icon: BookMarked },
     { to: '/profile', label: 'Preferences', icon: Settings2 },
@@ -110,12 +116,13 @@ function Home({ user, streak }) {
 
       <div className="dashboard-content-grid-v2">
         <div className="dashboard-main-column-v2">
+          <StepsCard />
           <TodayHobbies user={user} />
           <TodayPlan items={items} percent={percent} done={done} total={total} />
         </div>
 
         <aside className="dashboard-side-column-v2">
-          <UpcomingEvents user={user} />
+          <ComingUp user={user} />
           <section className="dashboard-note-panel-v2">
             <span className="note-flower">✳</span>
             <div>
@@ -136,6 +143,65 @@ function Home({ user, streak }) {
   )
 }
 
+function Shell({ user, streak, setStreak, onPick, onLogout }) {
+  const { pathname } = useLocation()
+  const steps = useSteps(user.id)
+  const [watered, setWatered] = useState(false)
+  const needsWater = streak && !watered && streak.watered !== dayKey()
+
+  return (
+    <StepsContext.Provider value={steps}>
+      <div className="app-shell">
+        <RouteTransition />
+        {needsWater && (
+          <WateringOverlay
+            days={streak.current}
+            onDone={() => {
+              markWatered(user.id)
+              setWatered(true)
+              setStreak((s) => ({ ...s, watered: dayKey() }))
+            }}
+          />
+        )}
+        <Sidebar streak={streak} />
+        <div className="app-main">
+          <AppBar user={user} streak={streak} onPick={onPick} onLogout={onLogout} />
+          <main className="page-container">
+            <div key={pathname} className="px-page-in">
+              <Routes>
+                <Route path="/hobbies" element={<Hobbies user={user} />} />
+                <Route path="/hobbies/:hobbyId" element={<HobbyDetail user={user} />} />
+                <Route path="/" element={<Home user={user} streak={streak} />} />
+                <Route path="/calendar" element={<Calendar user={user} />} />
+                <Route path="/planner" element={<Planner user={user} />} />
+                <Route path="/diary" element={<Diary user={user} />} />
+                <Route path="/stats" element={<Stats user={user} />} />
+                <Route path="/books" element={<Books user={user} />} />
+                <Route
+                  path="/profile"
+                  element={<Preferences user={user} streak={streak} onUpdateUser={onPick.update} onLogout={onLogout} />}
+                />
+                <Route
+                  path="*"
+                  element={
+                    <div className="empty-state">
+                      <h2>Page not found</h2>
+                      <Link to="/" className="text-link">
+                        Return to home <ArrowRight size={15} />
+                      </Link>
+                    </div>
+                  }
+                />
+              </Routes>
+            </div>
+          </main>
+        </div>
+        <BottomNav />
+      </div>
+    </StepsContext.Provider>
+  )
+}
+
 function App() {
   const navigate = useNavigate()
   const [user, setUser] = useState(() => {
@@ -147,7 +213,6 @@ function App() {
     }
   })
   const [streak, setStreak] = useState(() => (user ? touchStreak(user.id) : null))
-  const [watered, setWatered] = useState(false)
 
   function handleAuthSuccess(nextUser) {
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(nextUser))
@@ -170,61 +235,12 @@ function App() {
   }
 
   if (!user) return <AuthScreen onAuthSuccess={handleAuthSuccess} />
-  if (!AVATARS.some((a) => a.id === user.avatar)) {
-    return <ProfileSetup user={user} onDone={(avatar) => updateUserProfile({ avatar })} />
+  if (!user.username || !AVATARS.some((a) => a.id === user.avatar)) {
+    return <ProfileSetup user={user} onDone={(changes) => updateUserProfile(changes)} />
   }
 
-  const needsWater = streak && !watered && streak.watered !== dayKey()
-
-  return (
-    <div className="app-shell">
-      <SaplingTransition />
-      {needsWater && (
-        <WateringOverlay
-          days={streak.current}
-          onDone={() => {
-            markWatered(user.id)
-            setWatered(true)
-          }}
-        />
-      )}
-      <Sidebar streak={streak} />
-      <div className="app-main">
-        <AppBar
-          user={user}
-          streak={streak}
-          onPick={(avatar) => updateUserProfile({ avatar })}
-          onLogout={handleLogout}
-        />
-        <main className="page-container">
-          <Routes>
-            <Route path="/hobbies" element={<Hobbies user={user} />} />
-            <Route path="/hobbies/:hobbyId" element={<HobbyDetail user={user} />} />
-            <Route path="/" element={<Home user={user} streak={streak} />} />
-            <Route path="/calendar" element={<Calendar user={user} />} />
-            <Route path="/planner" element={<Planner user={user} />} />
-            <Route path="/books" element={<Books user={user} />} />
-            <Route
-              path="/profile"
-              element={<Preferences user={user} streak={streak} onUpdateUser={updateUserProfile} onLogout={handleLogout} />}
-            />
-            <Route
-              path="*"
-              element={
-                <div className="empty-state">
-                  <h2>Page not found</h2>
-                  <Link to="/" className="text-link">
-                    Return to home <ArrowRight size={15} />
-                  </Link>
-                </div>
-              }
-            />
-          </Routes>
-        </main>
-      </div>
-      <BottomNav />
-    </div>
-  )
+  const onPick = Object.assign((avatar) => updateUserProfile({ avatar }), { update: updateUserProfile })
+  return <Shell key={user.id} user={user} streak={streak} setStreak={setStreak} onPick={onPick} onLogout={handleLogout} />
 }
 
 export default App

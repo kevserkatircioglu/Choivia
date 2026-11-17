@@ -1,20 +1,20 @@
 import { NavLink } from 'react-router-dom'
-import { BookMarked, CalendarDays, Clock3, Home, Sprout } from 'lucide-react'
+import { BarChart3, BookHeart, CalendarDays, Clock3, Home } from 'lucide-react'
 
 const ITEMS = [
   { to: '/', label: 'Home', icon: Home, end: true },
   { to: '/planner', label: 'Plan', icon: Clock3 },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays },
-  { to: '/hobbies', label: 'Hobbies', icon: Sprout },
-  { to: '/books', label: 'Books', icon: BookMarked },
+  { to: '/diary', label: 'Diary', icon: BookHeart },
+  { to: '/stats', label: 'Stats', icon: BarChart3 },
 ]
 
 export default function BottomNav() {
   return (
-    <nav className="cv-bottom-nav" aria-label="Main navigation">
+    <nav className="px-bnav" aria-label="Main navigation">
       {ITEMS.map(({ to, label, icon: Icon, end }) => (
-        <NavLink key={to} to={to} end={end} className={({ isActive }) => `cv-tab${isActive ? ' active' : ''}`}>
-          <Icon size={22} strokeWidth={1.9} /><span>{label}</span>
+        <NavLink key={to} to={to} end={end} className={({ isActive }) => `px-bnav-item${isActive ? ' active' : ''}`}>
+          <span><Icon size={21} strokeWidth={1.9} /></span><small>{label}</small>
         </NavLink>
       ))}
     </nav>
