@@ -1,0 +1,123 @@
+import { describe, expect, it } from 'vitest'
+import {
+  addSession,
+  removeSession,
+  toggleCheckinForDate,
+} from './hobbies.js'
+
+const baseHobby = {
+  id: 'hobby-1',
+  checkins: ['2026-11-17'],
+  sessions: [],
+}
+
+describe('date-based hobby check-ins', () => {
+  it('adds a missed past day without changing other check-ins', () => {
+    const updated = toggleCheckinForDate(baseHobby, '2026-11-16')
+
+    expect(updated.checkins).toEqual(['2026-11-17', '2026-11-16'])
+  })
+
+  it('removes only the selected day when toggled again', () => {
+    const updated = toggleCheckinForDate(
+      { ...baseHobby, checkins: ['2026-11-16', '2026-11-17'] },
+      '2026-11-16',
+    )
+
+    expect(updated.checkins).toEqual(['2026-11-17'])
+  })
+
+  it('does not add duplicate dates', () => {
+    const updated = toggleCheckinForDate(baseHobby, '2026-11-17')
+
+    expect(updated.checkins).not.toContain('2026-11-17')
+    expect(updated.checkins).toEqual([])
+  })
+
+  it('rejects dates that do not use YYYY-MM-DD format', () => {
+    expect(() => toggleCheckinForDate(baseHobby, '17/11/2026'))
+      .toThrow('Check-in date must use YYYY-MM-DD format.')
+  })
+})
+
+describe('hobby session creation', () => {
+  it('saves a session on a selected past date and adds its check-in', () => {
+    const updated = addSession(baseHobby, {
+      date: '2026-11-15',
+      minutes: '20',
+      mood: 'good',
+      note: '  Practised slowly.  ',
+    })
+
+    expect(updated.checkins).toEqual(['2026-11-17', '2026-11-15'])
+    expect(updated.sessions).toHaveLength(1)
+    expect(updated.sessions[0]).toMatchObject({
+      date: '2026-11-15',
+      minutes: 20,
+      mood: 'good',
+      note: 'Practised slowly.',
+    })
+  })
+
+  it('does not duplicate the check-in when a session is saved for an already marked day', () => {
+    const updated = addSession(baseHobby, {
+      date: '2026-11-17',
+      minutes: 5,
+    })
+
+    expect(updated.checkins).toEqual(['2026-11-17'])
+    expect(updated.sessions).toHaveLength(1)
+  })
+
+  it('preserves older sessions', () => {
+    const hobby = {
+      ...baseHobby,
+      sessions: [{ id: 'old-session', date: '2026-11-10', minutes: 10, mood: '', note: '' }],
+    }
+
+    const updated = addSession(hobby, {
+      date: '2026-11-17',
+      minutes: 15,
+    })
+
+    expect(updated.sessions).toHaveLength(2)
+    expect(updated.sessions[0].id).toBe('old-session')
+  })
+
+  it('rejects an invalid session date', () => {
+    expect(() => addSession(baseHobby, { date: 'yesterday' }))
+      .toThrow('Session date must use YYYY-MM-DD format.')
+  })
+})
+
+
+describe('hobby session deletion', () => {
+  it('removes only the selected session and preserves its check-in', () => {
+    const hobby = {
+      ...baseHobby,
+      checkins: ['2026-11-17'],
+      sessions: [
+        { id: 'session-1', date: '2026-11-17', minutes: 20, mood: 'good', note: '' },
+      ],
+    }
+
+    const updated = removeSession(hobby, 'session-1')
+
+    expect(updated.sessions).toEqual([])
+    expect(updated.checkins).toEqual(['2026-11-17'])
+  })
+
+  it('preserves other sessions when one session is removed', () => {
+    const hobby = {
+      ...baseHobby,
+      sessions: [
+        { id: 'session-1', date: '2026-11-17', minutes: 20 },
+        { id: 'session-2', date: '2026-11-16', minutes: 10 },
+      ],
+    }
+
+    const updated = removeSession(hobby, 'session-1')
+
+    expect(updated.sessions).toEqual([hobby.sessions[1]])
+  })
+})

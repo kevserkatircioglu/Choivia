@@ -1,0 +1,34 @@
+.plant-illustration {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+.cv-plan-plant .plant-illustration,
+.cv-today-plant .plant-illustration {
+  animation: choivia-plant-float 3.6s ease-in-out infinite;
+}
+
+.hb-plant-visual {
+  width: 76px;
+  height: 76px;
+  flex: none;
+  filter: drop-shadow(0 5px 5px rgba(69, 105, 65, .10));
+}
+
+.hb-inline-plant {
+  display: inline-block;
+  vertical-align: -0.35em;
+}
+
+@keyframes choivia-plant-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-plan-plant .plant-illustration,
+  .cv-today-plant .plant-illustration {
+    animation: none;
+  }
+}

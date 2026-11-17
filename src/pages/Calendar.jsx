@@ -130,7 +130,29 @@ export default function Calendar({ user }) {
             onClick={(event) => openDayDetails(k, event)}
             aria-label={`${d} ${MONTHS[m]} ${year}${k === today ? ', today' : ''}${list.length ? `, ${list.length} events` : ''}${specialDays.length ? `, ${specialDays.map((item) => item.name).join(', ')}` : ''}`}
           >
-            {d}
+            <span className="cv-day-number">{d}</span>
+
+            {specialDays.some((item) => item.name.includes('Atatürk Memorial Day')) ? (
+              <span className="cv-day-symbol memorial-symbol" aria-hidden="true">🖤</span>
+            ) : specialKind === 'national' ? (
+                <span className="cv-day-symbol national-symbol" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 900 600"
+                    className="national-flag-icon"
+                  >
+                    <path
+                      d="M0 0h900v600H0z"
+                      fill="#E30A17"
+                    />
+                    <path
+                      d="m417.504 300 135.68-44.078-83.86 115.41V228.668l83.86 115.41Zm9.25 80.21c-35.7 56.415-104.387 82.446-168.508 63.86C194.125 425.488 150 366.762 150 300s44.125-125.488 108.246-144.07c64.121-18.586 132.809 7.445 168.508 63.86-33.223-36.97-85.797-49.63-132.203-31.84C248.14 205.737 217.5 250.296 217.5 300s30.64 94.262 77.05 112.05c46.407 17.79 98.981 5.13 132.204-31.84"
+                      fill="#FFFFFF"
+                    />
+                  </svg>
+                </span>
+            ) : null}
+
             {(list.length > 0 || specialKind) && (
               <small className="cv-event-markers" aria-hidden="true">
                 {[...new Set(list.map(catOf))].slice(0, 3).map((c) => (

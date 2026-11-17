@@ -1,0 +1,699 @@
+/* Hobi özelliği. Tüm sınıflar "hb-" ile başlar, mevcut CSS ile çakışmaz.
+   Kurallar: yazı en az 14px, dokunma hedefi en az 44px, görünür odak halkası. */
+:root {
+  --hb-ink: #26382e;
+  --hb-muted: #5d6e62;
+  --hb-line: #dfe6d8;
+  --hb-bg: #fffefa;
+  --hb-soft: #eef4e6;
+  --hb-green: #2f5d45;
+  --hb-accent: #e0662c;
+  --hb-danger: #a33a2c;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.hb-page { width: 100%; max-width: var(--cv-page-standard, 920px); margin: 0 auto; color: var(--hb-ink); font-size: 15px; line-height: 1.55; }
+.hb-page small { font-size: 14px; color: var(--hb-muted); }
+.hb-head h1, .hb-detail-head h1 { margin: 6px 0; font: 800 clamp(26px, 4vw, 36px)/1.15 'Manrope', sans-serif; }
+.hb-head p { margin: 0 0 22px; color: var(--hb-muted); }
+.hb-h2 { margin: 28px 0 12px; font: 800 20px 'Manrope', sans-serif; }
+
+.hb-page button:focus-visible,
+.hb-page a:focus-visible,
+.hb-page input:focus-visible,
+.hb-page summary:focus-visible,
+.hb-today a:focus-visible,
+.hb-today button:focus-visible {
+  outline: 3px solid #3f7a4f;
+  outline-offset: 2px;
+}
+
+.hb-emoji { display: inline-grid; place-items: center; font-size: 22px; }
+.hb-emoji-lg { font-size: 34px; width: 52px; height: 52px; border-radius: 16px; background: var(--hb-soft); flex: none; }
+.hb-emoji-xl { font-size: 46px; width: 72px; height: 72px; border-radius: 22px; background: var(--hb-soft); flex: none; }
+
+/* Buttons */
+.hb-primary, .hb-secondary, .hb-danger, .hb-checkin {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; border-radius: 999px; font: 700 15px 'DM Sans', sans-serif; cursor: pointer;
+  text-decoration: none; border: 2px solid transparent;
+}
+.hb-primary { background: var(--hb-green); color: #fff; }
+.hb-primary:hover { background: #244a37; }
+.hb-secondary { background: var(--hb-soft); color: var(--hb-green); }
+.hb-danger { margin-top: 32px; background: #fff; color: var(--hb-danger); border-color: #e9c9c3; }
+.hb-checkin { background: #fff; color: var(--hb-green); border-color: #9dc48a; white-space: nowrap; }
+.hb-checkin.on { background: #5f9a62; border-color: #5f9a62; color: #fff; }
+.hb-icon-btn { min-width: 44px; min-height: 44px; border: 0; background: none; font-size: 24px; color: #7b877e; cursor: pointer; }
+.hb-icon-btn:hover { color: var(--hb-danger); }
+
+/* Cards */
+.hb-cards, .hb-today-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.hb-card, .hb-today-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  padding: 14px 16px; background: var(--hb-bg); border: 1px solid var(--hb-line); border-radius: 18px;
+}
+.hb-card-link, .hb-today-info { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1; color: inherit; text-decoration: none; }
+.hb-card-main, .hb-today-info > span:last-child { display: grid; gap: 4px; min-width: 0; }
+.hb-card-main strong, .hb-today-info strong { font-size: 17px; }
+
+.hb-bar { display: block; height: 8px; border-radius: 8px; background: #e7eee0; overflow: hidden; }
+.hb-bar > span { display: block; height: 100%; background: #6e9565; border-radius: inherit; transition: width .25s; }
+
+/* Template picker */
+.hb-templates { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.hb-template {
+  display: grid; gap: 6px; justify-items: start; text-align: left; padding: 14px; min-height: 44px;
+  background: var(--hb-bg); border: 2px solid var(--hb-line); border-radius: 18px; cursor: pointer; font-family: inherit; color: inherit;
+}
+.hb-template:hover { border-color: #b9d4a5; }
+.hb-template.selected { border-color: var(--hb-green); background: var(--hb-soft); }
+
+/* Forms */
+.hb-form { display: grid; gap: 14px; margin-top: 18px; padding: 18px; background: var(--hb-bg); border: 1px solid var(--hb-line); border-radius: 18px; }
+.hb-form label { display: grid; gap: 6px; font-weight: 700; }
+.hb-form label em { font-weight: 400; color: var(--hb-muted); }
+.hb-form input, .hb-add input {
+  min-height: 46px; padding: 0 14px; border: 1.5px solid #cfd9c6; border-radius: 12px; font: 500 16px 'DM Sans', sans-serif; background: #fff; color: var(--hb-ink); min-width: 0;
+}
+.hb-form input[aria-invalid='true'] { border-color: var(--hb-danger); }
+.hb-error { margin: 0; padding: 10px 12px; border-radius: 12px; background: #fdecea; color: var(--hb-danger); font-weight: 600; }
+.hb-form .hb-primary { justify-self: start; }
+
+/* Today list / empty */
+.hb-today { padding: 22px; background: var(--hb-bg); border: 1px solid var(--hb-line); border-radius: 20px; }
+.hb-section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 14px; }
+.hb-section-head h2 { margin: 4px 0 0; font: 800 20px 'Manrope', sans-serif; }
+.hb-today .hb-today-item { background: #f7faf2; }
+.hb-empty { display: grid; justify-items: start; gap: 10px; color: var(--hb-muted); }
+.hb-empty p { margin: 0; }
+
+/* Detail */
+.hb-detail-head { display: flex; align-items: center; gap: 16px; margin: 6px 0 18px; }
+.hb-why { margin: 4px 0 0; display: flex; align-items: center; gap: 6px; color: var(--hb-muted); }
+.hb-panel, .hb-next { padding: 18px; background: var(--hb-bg); border: 1px solid var(--hb-line); border-radius: 20px; margin-bottom: 14px; }
+.hb-panel-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.hb-big { display: block; font: 800 32px 'Manrope', sans-serif; }
+.hb-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 14px; text-align: center; }
+.hb-week > span { display: grid; justify-items: center; gap: 2px; }
+.hb-week i { width: 34px; height: 34px; border-radius: 50%; background: #eef2e8; display: grid; place-items: center; font-style: normal; color: #fff; font-weight: 800; }
+.hb-week .on i { background: #5f9a62; }
+.hb-week .today i { outline: 2px solid var(--hb-accent); outline-offset: 2px; }
+
+.hb-next { background: linear-gradient(120deg, #e2f1d2, #fdf2dc); border-color: #cfe0b8; }
+.hb-next h2 { margin: 6px 0 4px; font: 800 22px/1.25 'Manrope', sans-serif; }
+.hb-next p { margin: 0 0 14px; color: var(--hb-muted); }
+
+/* Stages & tasks */
+.hb-stages { display: grid; gap: 10px; }
+.hb-stage { background: var(--hb-bg); border: 1px solid var(--hb-line); border-radius: 18px; padding: 4px 14px 14px; }
+.hb-stage summary { display: flex; align-items: center; gap: 12px; min-height: 52px; cursor: pointer; list-style: none; font-weight: 700; }
+.hb-stage summary::-webkit-details-marker { display: none; }
+.hb-stage-title { flex: 1; font-size: 16px; }
+.hb-stage-num { width: 30px; height: 30px; border-radius: 50%; background: var(--hb-soft); display: grid; place-items: center; font-size: 14px; color: var(--hb-green); }
+.hb-tasks { list-style: none; margin: 0 0 8px; padding: 0; }
+.hb-tasks li { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid #edf1e8; }
+.hb-tasks label { display: flex; align-items: center; gap: 12px; flex: 1; min-height: 48px; cursor: pointer; }
+.hb-tasks input[type='checkbox'] { width: 22px; height: 22px; accent-color: #5f9a62; flex: none; }
+.hb-tasks .done span { text-decoration: line-through; color: #8a958c; }
+.hb-add { display: flex; gap: 8px; }
+.hb-add input { flex: 1; }
+.hb-add-stage { margin-top: 12px; }
+
+@media (max-width: 560px) {
+  .hb-card .hb-checkin, .hb-today-item .hb-checkin { width: 100%; }
+  .hb-today { padding: 16px; }
+}
+
+/* ---- v2: günlük, haftalık hedef, bitki, ısı haritası, yedekleme ---- */
+.hb-status { min-height: 22px; margin: 0 0 10px; color: var(--hb-green); font-weight: 700; }
+.hb-hint { margin: 6px 0 0; color: var(--hb-muted); font-size: 14px; }
+.hb-waiting { color: #8a5a2b !important; }
+.hb-big span { font-size: 18px; color: var(--hb-muted); font-weight: 600; }
+.hb-goal-line { margin: 12px 0 0; font-weight: 700; }
+.hb-week .future i { opacity: .45; }
+
+.hb-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+.hb-form select, .hb-field select, .hb-form input[type='time'], .hb-field input[type='time'], .hb-field textarea {
+  min-height: 46px; padding: 0 12px; border: 1.5px solid #cfd9c6; border-radius: 12px;
+  font: 500 16px 'DM Sans', sans-serif; background: #fff; color: var(--hb-ink); min-width: 0;
+}
+.hb-field textarea { padding: 10px 12px; resize: vertical; }
+.hb-field { display: grid; gap: 6px; font-weight: 700; margin-top: 12px; }
+
+.hb-log { padding: 18px; margin-bottom: 14px; background: #fffaf0; border: 1px solid #f0e2c4; border-radius: 20px; }
+.hb-log h2 { margin: 0; font: 800 20px 'Manrope', sans-serif; }
+.hb-log .hb-primary { margin-top: 14px; }
+.hb-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hb-chip {
+  min-height: 44px; min-width: 44px; padding: 0 14px; border-radius: 999px; border: 2px solid #d9dfcf;
+  background: #fff; color: var(--hb-ink); font: 700 15px 'DM Sans', sans-serif; cursor: pointer;
+}
+.hb-chip.on { background: var(--hb-green); border-color: var(--hb-green); color: #fff; }
+.hb-chips input[type='number'] {
+  width: 96px; min-height: 44px; padding: 0 12px; border: 2px solid #d9dfcf; border-radius: 999px; font: 600 15px 'DM Sans', sans-serif;
+}
+
+.hb-plant { display: flex; gap: 16px; align-items: center; padding: 16px 18px; background: var(--hb-bg); border: 1px solid var(--hb-line); border-radius: 20px; margin-bottom: 10px; }
+.hb-plant > div { display: grid; gap: 4px; flex: 1; min-width: 0; }
+.hb-plant strong { font-size: 18px; }
+.hb-plant-emoji { font-size: 54px; line-height: 1; }
+.hb-milestone { margin: 0 0 14px; padding: 10px 14px; background: var(--hb-soft); border-radius: 14px; font-weight: 600; }
+
+.hb-heatmap { display: flex; gap: 4px; overflow-x: auto; padding: 4px 2px 8px; }
+.hb-heat-col { display: grid; gap: 4px; }
+.hb-heat { width: 18px; height: 18px; border-radius: 5px; background: #e9efe2; display: block; }
+.hb-heat.on { background: #5f9a62; }
+.hb-heat.future { background: transparent; border: 1px dashed #d6dfcc; }
+
+.hb-log-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 10px; }
+.hb-log-list li { padding: 10px 14px; background: var(--hb-bg); border: 1px solid var(--hb-line); border-radius: 16px; }
+.hb-log-top { display: flex; align-items: center; gap: 12px; }
+.hb-log-top span { flex: 1; color: var(--hb-muted); }
+.hb-log-list p { margin: 4px 0 6px; }
+
+.hb-settings { margin-top: 16px; }
+.hb-backup { margin-top: 36px; padding-top: 6px; border-top: 1px solid var(--hb-line); }
+.hb-backup-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.hb-secondary:disabled { opacity: .5; cursor: not-allowed; }
+.hb-file:focus-within { outline: 3px solid #3f7a4f; outline-offset: 2px; }
+
+/* ---- v3: mikro adımlar ve başarımlar ---- */
+.hb-tasks li { display: block; }
+.hb-task-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.hb-min {
+  display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px;
+  background: var(--hb-soft); color: var(--hb-green); font-weight: 700; white-space: nowrap;
+}
+.hb-tip { margin: 0 0 10px 34px; }
+.hb-tip summary { display: inline-flex; align-items: center; min-height: 36px; cursor: pointer; color: var(--hb-green); font-weight: 700; }
+.hb-tip p { margin: 2px 0 8px; color: var(--hb-muted); }
+.hb-tip-line { margin: 0 0 14px !important; color: var(--hb-ink) !important; }
+.hb-next-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.hb-celebrate {
+  padding: 18px; margin-bottom: 14px; border-radius: 20px; border: 2px solid #efd9a0;
+  background: linear-gradient(120deg, #fff6dc, #fdeccf); animation: hb-pop .4s ease-out;
+}
+.hb-celebrate ul { list-style: none; margin: 8px 0 14px; padding: 0; display: grid; gap: 10px; }
+.hb-celebrate li { display: flex; align-items: center; gap: 12px; }
+.hb-celebrate li div { display: grid; }
+.hb-celebrate strong { font-size: 18px; }
+
+.hb-count { font-size: 15px; color: var(--hb-muted); font-weight: 600; margin-left: 6px; }
+.hb-trophies { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.hb-trophies li {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px;
+  background: #f1f3ec; border: 1px solid var(--hb-line); color: var(--hb-muted);
+}
+.hb-trophies li.on { background: #fff8e6; border-color: #efd9a0; color: var(--hb-ink); }
+.hb-trophies li div { display: grid; gap: 2px; min-width: 0; }
+.hb-trophies li strong { font-size: 15px; }
+.hb-trophy-emoji { font-size: 30px; line-height: 1; width: 40px; text-align: center; flex: none; }
+.hb-trophy-date { color: #8a5a2b !important; font-weight: 700; }
+
+@keyframes hb-pop { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hb-bar > span { transition: none; }
+  .hb-celebrate { animation: none; }
+}
+
+/* Lucide SVG icon sizing */
+.hb-emoji,
+.hb-plant-emoji,
+.hb-trophy-emoji {
+  display: inline-grid;
+  place-items: center;
+  font-size: 0;
+}
+
+.hb-plant-emoji {
+  width: 54px;
+  height: 54px;
+  flex: none;
+}
+
+.hb-inline-icon {
+  display: inline-block;
+  vertical-align: -0.16em;
+  flex: none;
+}
+
+.hb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.hb-milestone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hb-log-mood {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+
+/* Achievement filters and grouped cards */
+.hb-achievement-section {
+  margin: 26px 0;
+}
+.hb-achievement-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.hb-achievement-top .hb-h2 {
+  margin: 0;
+}
+.hb-achievement-top p {
+  margin: 4px 0 0;
+  color: var(--hb-muted);
+  font-size: 14px;
+}
+.hb-achievement-top > strong {
+  color: #47794a;
+  font: 800 20px 'Manrope';
+}
+.hb-achievement-progress {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #e8eee3;
+}
+.hb-achievement-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8bb978, #4f9661);
+  transition: width .3s ease;
+}
+.hb-achievement-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 14px 0;
+}
+.hb-achievement-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid var(--hb-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--hb-ink);
+  font: 600 13px 'DM Sans';
+  cursor: pointer;
+}
+.hb-achievement-filters button.active {
+  border-color: #5f9060;
+  background: #eaf3e5;
+  color: #315d3a;
+}
+.hb-achievement-filters button span {
+  color: var(--hb-muted);
+  font-size: 12px;
+}
+.hb-achievement-groups {
+  display: grid;
+  gap: 9px;
+}
+.hb-achievement-group {
+  overflow: hidden;
+  border: 1px solid var(--hb-line);
+  border-radius: 16px;
+  background: #fff;
+}
+.hb-achievement-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 58px;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--hb-ink);
+  text-align: left;
+  cursor: pointer;
+}
+.hb-achievement-group-toggle > span {
+  display: grid;
+  gap: 3px;
+}
+.hb-achievement-group-toggle strong {
+  font-size: 15px;
+}
+.hb-achievement-group-toggle small {
+  color: var(--hb-muted);
+  font-size: 13px;
+}
+.hb-achievement-group-toggle > svg {
+  flex: none;
+  color: var(--hb-muted);
+  transition: transform .18s ease;
+}
+.hb-achievement-group-toggle > svg.expanded {
+  transform: rotate(180deg);
+}
+.hb-achievement-group .hb-trophies {
+  margin: 0;
+  padding: 0 10px 10px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.hb-achievement-group .hb-trophies li {
+  min-width: 0;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 12px;
+}
+.hb-achievement-group .hb-trophies li div {
+  gap: 4px;
+}
+.hb-achievement-group .hb-trophies li strong {
+  font-size: 15px;
+  line-height: 1.35;
+}
+.hb-achievement-group .hb-trophies li div small {
+  font-size: 13px;
+  line-height: 1.4;
+}
+.hb-achievement-group .hb-trophies li.locked {
+  background: #f4f6f1;
+  color: #687568;
+}
+.hb-achievement-group .hb-trophies li.locked .hb-trophy-emoji {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #e8ede4;
+  color: #8b9789;
+  filter: grayscale(1);
+  opacity: .65;
+}
+.hb-trophy-locked {
+  color: #859083 !important;
+  font-weight: 700;
+}
+.hb-achievement-group .hb-trophy-date {
+  font-size: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hb-achievement-progress > span,
+  .hb-achievement-group-toggle > svg {
+    transition: none;
+  }
+}
+
+
+/* Achievement partial progress indicators */
+.hb-trophy-progress {
+  display: grid;
+  gap: 5px;
+  margin-top: 4px;
+}
+.hb-trophy-progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: #728071;
+  font-size: 12px;
+}
+.hb-trophy-progress-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #e2e9df;
+}
+.hb-trophy-progress-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #8cab7b;
+  transition: width .25s ease;
+}
+.hb-trophies li.on .hb-trophy-date {
+  margin-top: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hb-trophy-progress-bar > span {
+    transition: none;
+  }
+}
+
+/* Phase 1 — hobby UI quick refinements */
+
+/* Make expandable sections visibly expandable. */
+.hb-stage > summary::after,
+.hb-tip > summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-left: 8px;
+  flex: none;
+  border-right: 2px solid var(--hb-muted);
+  border-bottom: 2px solid var(--hb-muted);
+  transform: rotate(45deg);
+  transition: transform 180ms ease;
+}
+
+.hb-stage[open] > summary::after,
+.hb-tip[open] > summary::after {
+  transform: rotate(-135deg);
+}
+
+/* Selected template gets a distinct icon surface. */
+.hb-template.selected .hb-emoji-lg {
+  background: #fff;
+  color: var(--hb-green);
+  box-shadow: 0 2px 8px rgba(47, 93, 69, 0.12);
+}
+
+/* The custom template becomes a balanced full-width option. */
+.hb-template-blank {
+  grid-column: 1 / -1;
+  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 12px;
+  min-height: 76px;
+}
+
+.hb-template-blank .hb-emoji-lg {
+  grid-row: 1 / 3;
+}
+
+.hb-template-blank strong,
+.hb-template-blank small {
+  align-self: end;
+}
+
+/* Empty practice log. */
+.hb-log-empty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px dashed var(--hb-line);
+  border-radius: 16px;
+  background: #fbfcf8;
+}
+
+.hb-log-empty > span {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 14px;
+  background: var(--hb-soft);
+  font-size: 24px;
+}
+
+.hb-log-empty strong {
+  color: var(--hb-ink);
+}
+
+.hb-log-empty p {
+  margin: 3px 0 0;
+  color: var(--hb-muted);
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hb-stage > summary::after,
+  .hb-tip > summary::after {
+    transition: none;
+  }
+}
+
+/* Phase 1B — task menus, undo, heatmap labels and template metadata */
+
+/* Quiet task options menu */
+.hb-task-menu {
+  position: relative;
+  flex: none;
+}
+
+.hb-task-menu > summary {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--hb-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.hb-task-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.hb-task-menu[open] > summary,
+.hb-task-menu > summary:hover {
+  background: var(--hb-soft);
+  color: var(--hb-green);
+}
+
+.hb-task-menu > div {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  min-width: 172px;
+  padding: 6px;
+  border: 1px solid var(--hb-line);
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(38, 56, 46, 0.14);
+}
+
+.hb-task-menu > div button {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--hb-ink);
+  font: 600 14px 'DM Sans', sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hb-task-menu > div button:hover {
+  background: var(--hb-soft);
+}
+
+.hb-task-menu > div button:last-child:not(:first-child) {
+  color: var(--hb-danger);
+}
+
+.hb-next-menu {
+  align-self: center;
+}
+
+/* Undo toast after a task is removed */
+.hb-undo-toast {
+  position: sticky;
+  top: 12px;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid #d7e5cf;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--hb-ink);
+  box-shadow: 0 8px 24px rgba(38, 56, 46, 0.12);
+}
+
+.hb-undo-toast button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--hb-soft);
+  color: var(--hb-green);
+  font: 700 14px 'DM Sans', sans-serif;
+  cursor: pointer;
+}
+
+/* Heatmap axes */
+.hb-heatmap-frame {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hb-heatmap-day-labels {
+  display: grid;
+  grid-template-rows: 16px repeat(7, 18px);
+  gap: 4px;
+  flex: none;
+  padding-top: 4px;
+  color: var(--hb-muted);
+  font-size: 10px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.hb-heatmap {
+  flex: 1;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.hb-heat-col {
+  display: grid;
+  grid-template-rows: 16px repeat(7, 18px);
+  gap: 4px;
+  flex: none;
+}
+
+.hb-heat-month {
+  min-height: 16px;
+  color: var(--hb-muted);
+  font-size: 10px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* Template metadata */
+.hb-template-meta {
+  color: var(--hb-muted);
+  font-size: 12px !important;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hb-task-menu > summary {
+    transition: none;
+  }
+}

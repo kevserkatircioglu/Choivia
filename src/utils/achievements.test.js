@@ -21,7 +21,7 @@ describe('achievementProgress', () => {
   it('tracks the daily practice milestones', () => {
     expect(
       achievementProgress(
-        { ...baseHobby, checkins: ['a', 'b'] },
+        { ...baseHobby, checkins: ['2026-11-15', '2026-11-16'] },
         { id: 'days-3' },
       ),
     ).toEqual({ current: 2, target: 3, unit: 'practice days' })
