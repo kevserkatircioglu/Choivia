@@ -6,6 +6,8 @@ import {
   ChevronRight,
   Lock,
   LockKeyhole,
+  Mic,
+  MicOff,
 } from 'lucide-react'
 import PinPad from '../components/PinPad.jsx'
 import { hashPassword, readAccounts } from '../lib/auth.js'
@@ -441,9 +443,13 @@ function Notebook({ user, onLock }) {
   const [day, setDay] = useState(today)
   const [saveStatus, setSaveStatus] = useState('saved')
   const [toggledMonths, setToggledMonths] = useState({})
+  const [isListening, setIsListening] = useState(false)
+  const [speechError, setSpeechError] = useState('')
 
   const topRef = useRef(null)
   const areaRef = useRef(null)
+  const recognitionRef = useRef(null)
+  const dictationBaseRef = useRef('')
 
   const displayEntries = useMemo(() => {
     const samples = {}
@@ -490,6 +496,9 @@ function Notebook({ user, onLock }) {
   const selectedMood = displayEntries[day]?.mood || ''
   const dailyPrompt = promptForDay(day)
   const wordCount = countWords(text)
+  const SpeechRecognitionAPI = typeof window !== 'undefined'
+    ? window.SpeechRecognition || window.webkitSpeechRecognition
+    : null
 
   // Pages you can flip through: every written day, then today. Oldest → newest.
   const pageKeys = useMemo(() => [...days].reverse().concat(today), [days, today])
@@ -516,6 +525,25 @@ function Notebook({ user, onLock }) {
 
     return Array.from(map, ([key, items]) => ({ key, items }))
   }, [days])
+
+  // Stop an active microphone session when the diary is unmounted.
+  useEffect(() => () => {
+    const recognition = recognitionRef.current
+
+    if (!recognition) return
+
+    recognition.onend = null
+    recognition.onerror = null
+    recognition.onresult = null
+
+    try {
+      recognition.abort()
+    } catch {
+      // The recognition session may already have ended.
+    }
+
+    recognitionRef.current = null
+  }, [])
 
   // Lock automatically after a period of inactivity.
   useEffect(() => {
@@ -633,6 +661,82 @@ function Notebook({ user, onLock }) {
 
     write(`${text}${separator}${phrase}`)
     areaRef.current?.focus()
+  }
+
+  function toggleDictation() {
+    if (!SpeechRecognitionAPI || !editable) return
+
+    // The same button stops an active dictation session.
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop()
+      } catch {
+        setSpeechError('Voice typing could not stop. Please try again.')
+        setIsListening(false)
+      }
+      return
+    }
+
+    try {
+      const recognition = new SpeechRecognitionAPI()
+
+      dictationBaseRef.current = areaRef.current?.value || text
+
+      recognition.lang = LOCALE
+      recognition.interimResults = false
+      recognition.continuous = false
+      recognition.maxAlternatives = 1
+
+      recognition.onstart = () => {
+        setIsListening(true)
+        setSpeechError('')
+      }
+
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .filter((result) => result.isFinal)
+          .map((result) => result[0]?.transcript || '')
+          .join(' ')
+          .trim()
+
+        if (!transcript) return
+
+        // Read the current textarea value so existing edits are preserved.
+        const currentText = areaRef.current?.value ?? dictationBaseRef.current
+        const separator = currentText && !/\s$/.test(currentText) ? ' ' : ''
+
+        write(`${currentText}${separator}${transcript}`)
+      }
+
+      recognition.onerror = (event) => {
+        const messages = {
+          'not-allowed': 'Allow microphone access in your browser to use voice typing.',
+          'service-not-allowed': 'Voice typing is blocked by your browser.',
+          'audio-capture': 'No microphone could be found.',
+          'no-speech': 'No speech was detected. Please try again.',
+          network: 'Voice typing needs a network connection.',
+        }
+
+        if (event.error !== 'aborted') {
+          setSpeechError(
+            messages[event.error] || 'Voice typing could not continue. Please try again.',
+          )
+        }
+      }
+
+      recognition.onend = () => {
+        recognitionRef.current = null
+        setIsListening(false)
+      }
+
+      recognitionRef.current = recognition
+      setSpeechError('')
+      recognition.start()
+    } catch {
+      recognitionRef.current = null
+      setIsListening(false)
+      setSpeechError('Voice typing could not start. Please try again.')
+    }
   }
 
   // Used by the list and the calendar, which sit below the page.
@@ -763,7 +867,33 @@ function Notebook({ user, onLock }) {
           <span className="diary-word-count">
             {wordCount} {wordCount === 1 ? 'word' : 'words'}
           </span>
+
+          {editable && SpeechRecognitionAPI && (
+            <button
+              type="button"
+              className={`diary-dictation-button${isListening ? ' is-listening' : ''}`}
+              onClick={toggleDictation}
+              aria-label={isListening ? 'Stop voice typing' : 'Start voice typing'}
+              aria-pressed={isListening}
+              title={isListening ? 'Stop voice typing' : 'Dictate your diary entry'}
+            >
+              {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+              <span>{isListening ? 'Stop listening' : 'Dictate'}</span>
+            </button>
+          )}
+
+          {editable && !SpeechRecognitionAPI && (
+            <span className="diary-dictation-unavailable">
+              Voice typing is not supported in this browser.
+            </span>
+          )}
         </div>
+
+        {speechError && editable && (
+          <p className="diary-speech-error" role="alert">
+            {speechError}
+          </p>
+        )}
 
         <textarea
           ref={areaRef}

@@ -613,3 +613,51 @@
     transition: none;
   }
 }
+
+
+/* ---------- voice dictation ---------- */
+
+.diary-dictation-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid var(--diary-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--diary-accent);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.diary-dictation-button:hover {
+  background: var(--diary-accent-soft);
+}
+
+.diary-dictation-button.is-listening {
+  border-color: #d88980;
+  background: #fff0ee;
+  color: #a44239;
+}
+
+.diary-dictation-unavailable {
+  color: var(--diary-muted);
+  font-size: 0.6875rem;
+}
+
+.diary-speech-error {
+  margin: 0 0 8px;
+  color: #a44239;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diary-dictation-button {
+    transition: none;
+  }
+}
