@@ -47,7 +47,8 @@ export function createHobby({
     goalPerWeek,
     reminderTime,
     createdAt: new Date().toISOString(),
-    checkins: [], // 'YYYY-MM-DD' listesi (hangi günler pratik yapıldı)
+    checkins: [], // Derlenmiş pratik günleri: manuel işaretler + oturum tarihleri
+    manualCheckins: [], // Oturumdan bağımsız, elle eklenen geçmiş günler
     sessions: [], // { id, date, minutes, mood, note }
     stages: stages.map((stage) => ({
       id: uid(),
@@ -91,40 +92,127 @@ export function nextTask(hobby) {
 
 /* ---------- Check-in ve günlük ---------- */
 
-export const isCheckedToday = (hobby) => hobby.checkins.includes(todayKey())
+const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/
 
-// Bugünün check-in'ini aç/kapat. Tekrar basınca geri alınır.
-export function toggleCheckin(hobby) {
-  const key = todayKey()
-  const has = hobby.checkins.includes(key)
+function uniqueDateKeys(values) {
+  return [...new Set(
+    (Array.isArray(values) ? values : [])
+      .filter((value) => typeof value === 'string' && DATE_KEY.test(value)),
+  )]
+}
+
+function sessionDates(hobby) {
+  return uniqueDateKeys(
+    (Array.isArray(hobby?.sessions) ? hobby.sessions : [])
+      .map((session) => session?.date),
+  )
+}
+
+// Eski kayıtlarda checkins hem oturumları hem manuel günleri içeriyordu.
+// manualCheckins yoksa oturum tarihi olmayan eski günleri manuel kabul et.
+export function getManualCheckins(hobby) {
+  const saved = Array.isArray(hobby?.checkins) ? hobby.checkins : []
+  const fromSessions = new Set(sessionDates(hobby))
+  const manual = Array.isArray(hobby?.manualCheckins)
+    ? hobby.manualCheckins
+    : saved.filter((key) => !fromSessions.has(key))
+
+  return uniqueDateKeys(manual)
+}
+
+// Isı haritası, haftalık hedef, seri ve başarımlar bu birleşik listeyi kullanır.
+export function getCheckins(hobby) {
+  return uniqueDateKeys([
+    ...getManualCheckins(hobby),
+    ...sessionDates(hobby),
+  ]).sort()
+}
+
+function withCheckinSources(hobby, manualCheckins, sessions) {
+  const sessionDays = new Set(
+    (Array.isArray(sessions) ? sessions : [])
+      .map((session) => session?.date)
+      .filter((key) => typeof key === 'string' && DATE_KEY.test(key)),
+  )
+  const manual = uniqueDateKeys(manualCheckins)
+  const checkins = uniqueDateKeys([...manual, ...sessionDays]).sort()
+
   return {
     ...hobby,
-    checkins: has ? hobby.checkins.filter((item) => item !== key) : [...hobby.checkins, key],
+    manualCheckins: manual,
+    sessions,
+    checkins,
   }
 }
 
-// Bugüne bir günlük kaydı ekler ve bugünü pratik günü sayar.
-export function addSession(hobby, { minutes, mood, note }) {
-  const key = todayKey()
-  return {
-    ...hobby,
-    checkins: hobby.checkins.includes(key) ? hobby.checkins : [...hobby.checkins, key],
-    sessions: [
-      ...(hobby.sessions ?? []),
-      { id: uid(), date: key, minutes: Number(minutes) || 0, mood: mood || '', note: (note || '').trim() },
-    ],
+export const isCheckedToday = (hobby) => getCheckins(hobby).includes(todayKey())
+
+export const sessionMinutesForDate = (hobby, date) =>
+  (Array.isArray(hobby?.sessions) ? hobby.sessions : [])
+    .filter((session) => session?.date === date)
+    .reduce((sum, session) => sum + (Number(session.minutes) || 0), 0)
+
+// Elle işaretleme yalnızca manualCheckins kaynağını değiştirir.
+// Bir oturumun bulunduğu gün, oturum silinmeden check-in kaldırılamaz.
+export function toggleCheckinForDate(hobby, key) {
+  if (!DATE_KEY.test(key)) {
+    throw new TypeError('Check-in date must use YYYY-MM-DD format.')
   }
+
+  const sessions = Array.isArray(hobby.sessions) ? hobby.sessions : []
+  const manual = getManualCheckins(hobby)
+
+  if (sessionDates(hobby).includes(key)) {
+    return withCheckinSources(hobby, manual, sessions)
+  }
+
+  const nextManual = manual.includes(key)
+    ? manual.filter((item) => item !== key)
+    : [...manual, key]
+
+  return withCheckinSources(hobby, nextManual, sessions)
+}
+
+// Eski kullanım biçimi korunur; artık yalnızca manuel işaret ekler/kaldırır.
+export function toggleCheckin(hobby) {
+  return toggleCheckinForDate(hobby, todayKey())
+}
+
+export function addSession(hobby, {
+  date = todayKey(),
+  minutes,
+  mood,
+  note,
+} = {}) {
+  if (!DATE_KEY.test(date)) {
+    throw new TypeError('Session date must use YYYY-MM-DD format.')
+  }
+
+  const sessions = Array.isArray(hobby.sessions) ? hobby.sessions : []
+  const manual = getManualCheckins(hobby)
+  const entry = {
+    id: uid(),
+    date,
+    minutes: Number(minutes) || 0,
+    mood: mood || '',
+    note: (note || '').trim(),
+  }
+
+  return withCheckinSources(hobby, manual, [...sessions, entry])
 }
 
 export function removeSession(hobby, sessionId) {
-  return { ...hobby, sessions: (hobby.sessions ?? []).filter((item) => item.id !== sessionId) }
+  const sessions = (Array.isArray(hobby.sessions) ? hobby.sessions : [])
+    .filter((item) => item.id !== sessionId)
+
+  return withCheckinSources(hobby, getManualCheckins(hobby), sessions)
 }
 
 export function sessionsNewestFirst(hobby) {
   return [...(hobby.sessions ?? [])].reverse().sort((a, b) => b.date.localeCompare(a.date))
 }
 
-export const totalDays = (hobby) => new Set(hobby.checkins).size
+export const totalDays = (hobby) => getCheckins(hobby).length
 
 export const totalMinutes = (hobby) =>
   (hobby.sessions ?? []).reduce((sum, item) => sum + (item.minutes || 0), 0)
@@ -177,10 +265,12 @@ function weekKeys(start) {
 
 export function thisWeek(hobby) {
   const today = todayKey()
+  const checkins = new Set(getCheckins(hobby))
+
   return weekKeys(startOfWeek()).map(({ date, key }) => ({
     key,
     label: date.toLocaleDateString('en', { weekday: 'short' }),
-    done: hobby.checkins.includes(key),
+    done: checkins.has(key),
     isToday: key === today,
     future: key > today,
   }))
@@ -191,11 +281,7 @@ export const weekCount = (hobby) => thisWeek(hobby).filter((day) => day.done).le
 // Count unique practice days across all hobbies for the current Monday-Sunday week.
 export function weeklyActivity(hobbies = [], now = new Date()) {
   const checkins = new Set(
-    (Array.isArray(hobbies) ? hobbies : []).flatMap((hobby) =>
-      Array.isArray(hobby?.checkins)
-        ? hobby.checkins.filter((key) => typeof key === 'string')
-        : [],
-    ),
+    (Array.isArray(hobbies) ? hobbies : []).flatMap((hobby) => getCheckins(hobby)),
   )
 
   const today = toKey(now)
@@ -219,7 +305,7 @@ export function weeklyActivity(hobbies = [], now = new Date()) {
 // Üst üste kaç hafta hedef tutturuldu. Devam eden hafta henüz bitmediği için seriyi bozmaz.
 export function weeksStreak(hobby) {
   const goal = hobby.goalPerWeek ?? 3
-  const set = new Set(hobby.checkins)
+  const set = new Set(getCheckins(hobby))
   const countWeek = (start) => weekKeys(start).filter(({ key }) => set.has(key)).length
   const current = startOfWeek()
 
@@ -235,7 +321,7 @@ export function weeksStreak(hobby) {
 
 // Son N hafta, her hafta 7 hücre (Pzt-Paz). Isı haritası için.
 export function heatmap(hobby, weeks = 12) {
-  const set = new Set(hobby.checkins)
+  const set = new Set(getCheckins(hobby))
   const today = todayKey()
   const first = startOfWeek()
   first.setDate(first.getDate() - 7 * (weeks - 1))

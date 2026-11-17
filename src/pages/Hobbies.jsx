@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, Plus } from 'lucide-react'
+import { ArrowRight, Check, Play, Plus } from 'lucide-react'
 import Icon from '../components/Icon.jsx'
 import PlantIllustration from '../components/PlantIllustration.jsx'
+import { getHobbyTheme } from '../utils/hobbyTheme.js'
+import { getMotionPreference } from '../utils/motionPreference.js'
 import { useStored } from '../lib/useStored.js'
 import { TEMPLATES } from '../data/hobbyTemplates.js'
-import { applyAchievements } from '../utils/achievements.js'
 import {
   createHobby,
   hobbyProgress,
@@ -13,53 +14,71 @@ import {
   isWaiting,
   nextTask,
   plantStage,
-  toggleCheckin,
+  sessionMinutesForDate,
+  todayKey,
   totalDays,
   weekCount,
 } from '../utils/hobbies.js'
 
 const weeklyLabel = (hobby) => `${weekCount(hobby)} of ${hobby.goalPerWeek ?? 3} days this week`
 
-// Check-in'i açar/kapatır, kazanılan başarımları kaydeder ve kısa bir bildirim metni döndürür.
-function useCheckin(hobbies, setHobbies) {
-  const [notice, setNotice] = useState('')
+// Kart eylemi artık oturum sistemini kullanır; check-in silme butonu gösterilmez.
+function HobbySessionAction({ hobby, activeSession }) {
+  const practiced = isCheckedToday(hobby)
+  const minutes = sessionMinutesForDate(hobby, todayKey())
+  const detailPath = `/hobbies/${hobby.id}`
 
-  const toggle = (id) => {
-    const target = hobbies.find((hobby) => hobby.id === id)
-    if (!target) return
-    const { hobby: settled, unlocked } = applyAchievements(toggleCheckin(target))
-    setHobbies(hobbies.map((hobby) => (hobby.id === id ? settled : hobby)))
-    setNotice(
-      unlocked.length
-        ? `${target.name}: ${unlocked.map((item) => item.title).join(', ')} unlocked!`
-        : '',
+  if (activeSession?.hobbyId === hobby.id) {
+    return (
+      <Link to={detailPath} className="hb-session-card-action">
+        <Play size={15} fill="currentColor" aria-hidden="true" /> Resume session
+      </Link>
     )
   }
 
-  return [toggle, notice]
-}
+  if (practiced) {
+    return (
+      <div className="hb-session-card-practiced">
+        <span>
+          <Check size={16} aria-hidden="true" />
+          Practiced today{minutes > 0 ? ` · ${minutes} min` : ''}
+        </span>
+        {activeSession ? (
+          <small>Another session is in progress.</small>
+        ) : (
+          <Link
+            to={detailPath}
+            state={{ startSession: true }}
+            className="hb-session-card-secondary"
+          >
+            Start another
+          </Link>
+        )}
+      </div>
+    )
+  }
 
-// Tek dokunuşla "bugün yaptım". Tekrar basınca geri alınır.
-export function CheckinButton({ hobby, onToggle }) {
-  const done = isCheckedToday(hobby)
+  if (activeSession) {
+    return <small className="hb-session-card-wait">Another session is in progress.</small>
+  }
+
   return (
-    <button
-      type="button"
-      className={`hb-checkin${done ? ' on' : ''}`}
-      aria-pressed={done}
-      onClick={onToggle}
-      title={done ? 'Tap again to undo' : undefined}
+    <Link
+      to={detailPath}
+      state={{ startSession: true }}
+      className="hb-session-card-action"
     >
-      {done ? <Check size={18} aria-hidden="true" /> : null}
-      {done ? 'Practiced today' : 'I practiced today'}
-    </button>
+      <Play size={15} fill="currentColor" aria-hidden="true" /> Start session
+    </Link>
   )
 }
 
 // Dashboard'da görünen kısa liste.
+// Dashboard'da görünen kısa liste.
 export function TodayHobbies({ user }) {
-  const [hobbies, setHobbies] = useStored(`choivia:hobbies:${user.id}`, [])
-  const [toggle, notice] = useCheckin(hobbies, setHobbies)
+  const motionPreference = getMotionPreference(user.id)
+  const [hobbies] = useStored(`choivia:hobbies:${user.id}`, [])
+  const [activeSession] = useStored(`choivia:active-session:${user.id}`, null)
 
   return (
     <section className="hb-today" aria-labelledby="hb-today-title">
@@ -73,7 +92,6 @@ export function TodayHobbies({ user }) {
         </Link>
       </div>
 
-      <p className="hb-status" role="status">{notice}</p>
 
       {hobbies.length === 0 ? (
         <div className="hb-empty">
@@ -89,13 +107,14 @@ export function TodayHobbies({ user }) {
             const next = nextTask(hobby)
             const plant = plantStage(totalDays(hobby)).current
             return (
-              <li key={hobby.id} className="hb-today-item">
+              <li key={hobby.id} className="hb-today-item" data-hobby-theme={getHobbyTheme(hobby)}>
                 <Link to={`/hobbies/${hobby.id}`} className="hb-today-info">
                   <span className="hb-emoji" aria-hidden="true"><Icon name={hobby.emoji} size={22} /></span>
                   <span>
                     <strong>{hobby.name}</strong>
                     <small>{next ? `Next: ${next.task.text}` : 'All steps complete'}</small>
-                    <small><PlantIllustration stage={plant.key} size={20} className="hb-inline-plant" /> {weeklyLabel(hobby)}</small>
+                    <small><PlantIllustration stage={plant.key} size={20} className="hb-inline-plant" motionPreference={motionPreference} /> {weeklyLabel(hobby)}</small>
+                    {activeSession?.hobbyId === hobby.id && <small className="hb-active-session">Session in progress</small>}
                     {isWaiting(hobby) && (
                       <small className="hb-waiting">
                         It’s past {hobby.reminderTime}. Whenever you’re ready.
@@ -103,7 +122,7 @@ export function TodayHobbies({ user }) {
                     )}
                   </span>
                 </Link>
-                <CheckinButton hobby={hobby} onToggle={() => toggle(hobby.id)} />
+                <HobbySessionAction hobby={hobby} activeSession={activeSession} />
               </li>
             )
           })}
@@ -115,12 +134,11 @@ export function TodayHobbies({ user }) {
 
 export default function Hobbies({ user }) {
   const navigate = useNavigate()
+  const motionPreference = getMotionPreference(user.id)
   const [hobbies, setHobbies] = useStored(`choivia:hobbies:${user.id}`, [])
+  const [activeSession] = useStored(`choivia:active-session:${user.id}`, null)
   const [selected, setSelected] = useState(null) // template id | 'blank' | null
   const [name, setName] = useState('')
-  const [why, setWhy] = useState('')
-  const [goal, setGoal] = useState(3)
-  const [reminder, setReminder] = useState('')
   const [error, setError] = useState('')
 
   function choose(id) {
@@ -139,9 +157,7 @@ export default function Hobbies({ user }) {
     const template = TEMPLATES.find((item) => item.id === selected)
     const hobby = createHobby({
       name,
-      why,
-      goalPerWeek: Number(goal),
-      reminderTime: reminder,
+      goalPerWeek: 3,
       emoji: template?.emoji ?? '🌱',
       templateId: template?.id ?? '',
       stages: template?.stages ?? [{ title: 'First steps', tasks: [] }],
@@ -150,7 +166,6 @@ export default function Hobbies({ user }) {
     navigate(`/hobbies/${hobby.id}`)
   }
 
-  const [toggle, notice] = useCheckin(hobbies, setHobbies)
 
   const usedTemplateIds = new Set(
     hobbies.map((hobby) => hobby.templateId).filter(Boolean),
@@ -164,10 +179,9 @@ export default function Hobbies({ user }) {
       <header className="hb-head">
         <p className="eyebrow">HOBBIES</p>
         <h1>Grow something you love.</h1>
-        <p>Pick a roadmap, take one small step at a time, and check in whenever you practice.</p>
+        <p>Pick a roadmap, take one small step at a time, and start a session whenever you practice.</p>
       </header>
 
-      <p className="hb-status" role="status">{notice}</p>
 
       {hobbies.length > 0 && (
         <section aria-labelledby="hb-mine">
@@ -178,11 +192,22 @@ export default function Hobbies({ user }) {
               const next = nextTask(hobby)
               const plant = plantStage(totalDays(hobby)).current
               return (
-                <li key={hobby.id} className="hb-card">
+                <li key={hobby.id} className="hb-card" data-hobby-theme={getHobbyTheme(hobby)}>
                   <Link to={`/hobbies/${hobby.id}`} className="hb-card-link">
-                    <span className="hb-emoji hb-emoji-lg" aria-hidden="true"><Icon name={hobby.emoji} size={34} /></span>
+                    <span className="hb-card-garden-art">
+                      <PlantIllustration
+                        stage={plant.key}
+                        size={88}
+                        className="hb-card-plant"
+                        motionPreference={motionPreference}
+                      />
+                      <small>{plant.label}</small>
+                    </span>
                     <span className="hb-card-main">
-                      <strong>{hobby.name}</strong>
+                      <span className="hb-card-title">
+                        <span className="hb-emoji" aria-hidden="true"><Icon name={hobby.emoji} size={20} /></span>
+                        <strong>{hobby.name}</strong>
+                      </span>
                       <small>{next ? `Next: ${next.task.text}` : 'All steps complete'}</small>
                       <span
                         className="hb-bar"
@@ -195,10 +220,11 @@ export default function Hobbies({ user }) {
                         <span style={{ width: `${progress.percent}%` }} />
                       </span>
                       <small>{progress.done} of {progress.total} steps · {progress.percent}%</small>
-                      <small><PlantIllustration stage={plant.key} size={20} className="hb-inline-plant" /> {plant.label} · {weeklyLabel(hobby)}</small>
+                      <small>{weeklyLabel(hobby)}</small>
+                      {activeSession?.hobbyId === hobby.id && <small className="hb-active-session">Session in progress</small>}
                     </span>
                   </Link>
-                  <CheckinButton hobby={hobby} onToggle={() => toggle(hobby.id)} />
+                  <HobbySessionAction hobby={hobby} activeSession={activeSession} />
                 </li>
               )
             })}
@@ -220,22 +246,38 @@ export default function Hobbies({ user }) {
         )}
 
         <div className="hb-templates" role="group" aria-label="Available hobby templates">
-          {availableTemplates.map((template) => (
-            <button
-              key={template.id}
-              type="button"
-              className={`hb-template${selected === template.id ? ' selected' : ''}`}
-              aria-pressed={selected === template.id}
-              onClick={() => choose(template.id)}
-            >
-              <span className="hb-emoji hb-emoji-lg" aria-hidden="true"><Icon name={template.emoji} size={34} /></span>
-              <strong>{template.name}</strong>
-              <small>{template.blurb}</small>
-            </button>
-          ))}
+          {availableTemplates.map((template) => {
+            const stepCount = template.stages.reduce(
+              (total, stage) => total + stage.tasks.length,
+              0,
+            )
+            const firstTask = template.stages.find((stage) => stage.tasks.length)?.tasks[0]
+
+            return (
+              <button
+                key={template.id}
+                type="button"
+                className={`hb-template${selected === template.id ? ' selected' : ''}`}
+                data-hobby-theme={template.id}
+                aria-pressed={selected === template.id}
+                onClick={() => choose(template.id)}
+              >
+                <span className="hb-emoji hb-emoji-lg" aria-hidden="true"><Icon name={template.emoji} size={34} /></span>
+                <strong>{template.name}</strong>
+                <small>{template.blurb}</small>
+                <small className="hb-template-meta">
+                  <span>{template.stages.length} stages · {stepCount} steps</span>
+                  {firstTask?.minutes
+                    ? <span>First step ~{firstTask.minutes} min</span>
+                    : null}
+                </small>
+              </button>
+            )
+          })}
           <button
             type="button"
-            className={`hb-template${selected === 'blank' ? ' selected' : ''}`}
+            className={`hb-template hb-template-blank${selected === 'blank' ? ' selected' : ''}`}
+            data-hobby-theme="garden"
             aria-pressed={selected === 'blank'}
             onClick={() => choose('blank')}
           >
@@ -246,47 +288,28 @@ export default function Hobbies({ user }) {
         </div>
 
         {selected && (
-          <form className="hb-form" onSubmit={create} noValidate>
+          <form className="hb-form hb-quick-create" onSubmit={create} noValidate>
             <label>
-              <span>Name</span>
+              <span>What would you like to call it?</span>
               <input
+                autoFocus
                 value={name}
                 onChange={(event) => { setName(event.target.value); setError('') }}
                 maxLength={40}
+                placeholder="e.g. Learn pottery"
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? 'hb-name-error' : undefined}
               />
             </label>
-            <label>
-              <span>Why do you want to do this? <em>(optional)</em></span>
-              <input
-                value={why}
-                onChange={(event) => setWhy(event.target.value)}
-                maxLength={120}
-                placeholder="e.g. I want to play for my family"
-              />
-            </label>
-            <div className="hb-form-row">
-              <label>
-                <span>A comfortable weekly goal</span>
-                <select value={goal} onChange={(event) => setGoal(event.target.value)}>
-                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                    <option key={n} value={n}>{n} {n === 1 ? 'day' : 'days'} a week</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>Reminder time <em>(optional)</em></span>
-                <input type="time" value={reminder} onChange={(event) => setReminder(event.target.value)} />
-              </label>
-            </div>
-            <p className="hb-hint">
-              Start small. A goal you can keep beats a big one you can’t. Reminders appear on your dashboard,
-              gently, once the time has passed.
-            </p>
+
             {error && <p id="hb-name-error" className="hb-error" role="alert">{error}</p>}
+
+            <p className="hb-hint">
+              That’s enough to begin. You can add your reason, weekly goal and a gentle reminder after your first practice.
+            </p>
+
             <button type="submit" className="hb-primary">
-              Create hobby <ArrowRight size={16} />
+              Start <ArrowRight size={16} />
             </button>
           </form>
         )}

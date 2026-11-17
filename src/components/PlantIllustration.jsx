@@ -17,15 +17,23 @@ export default function PlantIllustration({
   size = 64,
   className = '',
   label,
+  motionPreference = 'system',
 }) {
   const currentStage = resolvePlantStage(stage)
   const index = PLANT_STAGE_KEYS.indexOf(currentStage)
   const id = useId().replace(/:/g, '')
   const potGradient = `plant-pot-${id}`
+  const classes = [
+    'plant-illustration',
+    size >= 64 ? 'plant-animated' : '',
+    className,
+  ].filter(Boolean).join(' ')
 
   return (
     <svg
-      className={`plant-illustration ${className}`.trim()}
+      className={classes}
+      data-stage={currentStage}
+      data-motion={motionPreference}
       width={size}
       height={size}
       viewBox="0 0 120 120"
@@ -38,13 +46,13 @@ export default function PlantIllustration({
     >
       <defs>
         <linearGradient id={potGradient} x1="60" y1="78" x2="60" y2="112">
-          <stop stopColor="#F2B99B" />
-          <stop offset="1" stopColor="#D98970" />
+          <stop stopColor="var(--plant-pot, #F2B99B)" />
+          <stop offset="1" stopColor="var(--plant-pot-end, #D98970)" />
         </linearGradient>
       </defs>
 
       {/* Soft background */}
-      <circle cx="60" cy="56" r="49" fill="#F0F5E9" />
+      <circle cx="60" cy="56" r="49" fill="var(--plant-bg, #F0F5E9)" />
       <circle cx="87" cy="27" r="7" fill="#FFFFFF" opacity=".55" />
       <circle cx="28" cy="43" r="3" fill="#FFFFFF" opacity=".7" />
 
@@ -52,7 +60,8 @@ export default function PlantIllustration({
       {index > 0 && (
         <path
           d={STEM_PATHS[currentStage]}
-          stroke="#56835C"
+          className="plant-stem"
+          stroke="var(--plant-stem, #56835C)"
           strokeWidth="3.5"
           strokeLinecap="round"
         />
@@ -60,88 +69,88 @@ export default function PlantIllustration({
 
       {/* First pair of leaves */}
       {index >= 1 && (
-        <>
+        <g className="plant-leaves plant-leaves-first">
           <path
             d="M60 68 C49 67 45 61 48 55 C56 55 62 60 60 68Z"
-            fill="#83B777"
-            stroke="#56835C"
+            fill="var(--plant-leaf, #83B777)"
+            stroke="var(--plant-leaf-edge, #56835C)"
             strokeWidth="1.3"
           />
           <path
             d="M60 68 C70 67 75 61 72 55 C64 55 58 60 60 68Z"
-            fill="#A2C98C"
-            stroke="#56835C"
+            fill="var(--plant-leaf-light, #A2C98C)"
+            stroke="var(--plant-leaf-edge, #56835C)"
             strokeWidth="1.3"
           />
           <path
             d="M51 59 Q55 62 59 66 M69 59 Q65 62 61 66"
-            stroke="#D9EACD"
+            stroke="var(--plant-leaf-vein, #D9EACD)"
             strokeWidth="1.2"
             strokeLinecap="round"
           />
-        </>
+        </g>
       )}
 
       {/* Second pair of leaves */}
       {index >= 2 && (
-        <>
+        <g className="plant-leaves plant-leaves-second">
           <path
             d="M59 56 C49 55 46 49 49 43 C56 43 61 48 59 56Z"
-            fill="#73A96C"
-            stroke="#4E7E56"
+            fill="var(--plant-leaf-mid, #73A96C)"
+            stroke="var(--plant-leaf-edge-dark, #4E7E56)"
             strokeWidth="1.3"
           />
           <path
             d="M60 53 C70 53 75 47 72 41 C64 41 59 46 60 53Z"
-            fill="#96C483"
-            stroke="#4E7E56"
+            fill="var(--plant-leaf-pale, #96C483)"
+            stroke="var(--plant-leaf-edge-dark, #4E7E56)"
             strokeWidth="1.3"
           />
-        </>
+        </g>
       )}
 
       {/* Fuller foliage */}
       {index >= 3 && (
-        <>
+        <g className="plant-leaves plant-leaves-top">
           <path
             d="M59 45 C49 44 46 38 49 33 C56 33 61 38 59 45Z"
-            fill="#A2C98C"
-            stroke="#56835C"
+            fill="var(--plant-leaf-light, #A2C98C)"
+            stroke="var(--plant-leaf-edge, #56835C)"
             strokeWidth="1.2"
           />
           <path
             d="M60 43 C69 43 73 37 70 32 C63 32 58 37 60 43Z"
-            fill="#78AD70"
-            stroke="#56835C"
+            fill="var(--plant-leaf-top, #78AD70)"
+            stroke="var(--plant-leaf-edge, #56835C)"
             strokeWidth="1.2"
           />
           <circle cx="43" cy="48" r="2.2" fill="#E6B77B" />
           <circle cx="77" cy="46" r="2.2" fill="#E6B77B" />
-        </>
+        </g>
       )}
 
       {/* Flower */}
       {index === 4 && (
-        <g>
+        <g className="plant-flower">
           <path
             d="M60 31 C52 29 51 22 56 19 C60 21 61 25 60 31Z"
-            fill="#E9A5B1"
+            fill="var(--plant-flower, #E9A5B1)"
           />
           <path
             d="M60 31 C53 34 48 29 50 24 C55 23 59 26 60 31Z"
-            fill="#F2B7BE"
+            fill="var(--plant-flower-light, #F2B7BE)"
           />
           <path
             d="M60 31 C64 24 71 25 72 30 C68 34 64 34 60 31Z"
-            fill="#E9A5B1"
+            fill="var(--plant-flower, #E9A5B1)"
           />
           <path
             d="M60 30 C57 22 61 17 66 19 C68 24 65 28 60 30Z"
-            fill="#F5C5C8"
+            fill="var(--plant-flower-light, #F5C5C8)"
           />
           <path
             d="M60 31 C64 33 65 39 60 41 C56 38 56 34 60 31Z"
-            fill="#F2B7BE"
+            fill="var(--plant-flower-light, #F2B7BE)"
           />
           <circle cx="60" cy="30" r="5" fill="#EAB85F" />
           <circle cx="58.5" cy="28.5" r="1" fill="#F8DB96" />
@@ -176,12 +185,12 @@ export default function PlantIllustration({
       <path
         d="M37 79 H83 L78 105 Q60 113 42 105 Z"
         fill={`url(#${potGradient})`}
-        stroke="#BE8068"
+        stroke="var(--plant-pot-edge, #BE8068)"
         strokeWidth="1.6"
       />
       <path
         d="M43 85 Q60 88 77 85"
-        stroke="#F7D1B7"
+        stroke="var(--plant-pot-highlight, #F7D1B7)"
         strokeWidth="1.4"
         opacity=".75"
       />
@@ -191,13 +200,13 @@ export default function PlantIllustration({
         width="52"
         height="10"
         rx="5"
-        fill="#E9A58A"
-        stroke="#BE8068"
+        fill="var(--plant-pot-rim, #E9A58A)"
+        stroke="var(--plant-pot-edge, #BE8068)"
         strokeWidth="1.5"
       />
       <path
         d="M47 96 Q60 100 73 96"
-        stroke="#F8C4A9"
+        stroke="var(--plant-pot-detail, #F8C4A9)"
         strokeWidth="1.5"
         strokeLinecap="round"
         opacity=".8"

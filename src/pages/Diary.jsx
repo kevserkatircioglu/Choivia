@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   BookHeart,
   ChevronDown,
@@ -8,8 +8,15 @@ import {
   LockKeyhole,
   Mic,
   MicOff,
+  Download,
+  Search,
+  Upload,
 } from 'lucide-react'
 import PinPad from '../components/PinPad.jsx'
+import { MOODS } from '../components/diary/moodConfig.js'
+import { MoodIcon } from '../components/diary/MoodIcon.jsx'
+import { exportJSON, exportMarkdown, parseImport } from '../utils/diaryBackup.js'
+import { filterDiaryMonths, getDiarySearchSnippet } from '../utils/diarySearch.js'
 import { hashPassword, readAccounts } from '../lib/auth.js'
 import { dayKey } from '../utils/streak.js'
 import './diary.css'
@@ -27,6 +34,7 @@ const IDLE_LOCK_MS = 5 * 60 * 1000
 // false: past pages are read-only (the diary keeps "that day's voice").
 // true: real (non-demo) past pages can be corrected.
 const ALLOW_PAST_EDIT = false
+const SHOW_DEMO = import.meta.env.VITE_DIARY_DEMO === 'true'
 
 function readJSON(key, fallback) {
   try {
@@ -142,14 +150,6 @@ const DAILY_PROMPTS = [
   'What is something you want to give yourself credit for?',
 ]
 
-const MOODS = [
-  { value: 'great', emoji: '😄', label: 'Great' },
-  { value: 'good', emoji: '🙂', label: 'Good' },
-  { value: 'okay', emoji: '😐', label: 'Okay' },
-  { value: 'low', emoji: '😔', label: 'Low' },
-  { value: 'tough', emoji: '😣', label: 'Tough' },
-]
-
 const STARTER_PHRASES = [
   { label: 'Gratitude', text: 'Today I’m grateful for…' },
   { label: 'Something I learned', text: 'Today I learned…' },
@@ -176,6 +176,7 @@ function LockScreen({ children }) {
       <section className="diary-lock-card">
         {children}
       </section>
+
     </div>
   )
 }
@@ -354,7 +355,7 @@ export default function Diary({ user }) {
 
 const WEEKDAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
-function MiniCalendar({ today, selected, written, onPick }) {
+function MiniCalendar({ today, selected, written, entries, onPick }) {
   const monthOf = (key) => {
     const [y, m] = key.split('-').map(Number)
     return { y, m: m - 1 }
@@ -384,6 +385,20 @@ function MiniCalendar({ today, selected, written, onPick }) {
     })
   }
 
+    const monthKey = `${view.y}-${String(view.m + 1).padStart(2, '0')}`
+    const monthPages = [...written].filter((key) => key.startsWith(`${monthKey}-`))
+    const moodCounts = MOODS.map((mood) => ({
+      label: mood.label,
+      count: monthPages.filter((key) => entries[key]?.mood === mood.value).length,
+    }))
+    const topMood = moodCounts.reduce(
+      (best, mood) => mood.count > best.count ? mood : best,
+      { label: '', count: 0 },
+    )
+    const moodEntryCount = monthPages.filter((key) =>
+      MOODS.some((mood) => entries[key]?.mood === mood.value),
+    ).length
+
   return (
     <section className="diary-mini" aria-label="Diary calendar">
       <header>
@@ -408,6 +423,7 @@ function MiniCalendar({ today, selected, written, onPick }) {
           const classes = [
             'diary-mini-day',
             written.has(key) ? 'has-entry' : '',
+            entries[key]?.mood ? `mood-${entries[key].mood}` : '',
             key === today ? 'is-today' : '',
             key === selected ? 'is-selected' : '',
           ].filter(Boolean).join(' ')
@@ -427,6 +443,16 @@ function MiniCalendar({ today, selected, written, onPick }) {
           )
         })}
       </div>
+        <div className="diary-month-summary" aria-label="Monthly diary summary">
+          <strong>
+            {monthPages.length} {monthPages.length === 1 ? 'page' : 'pages'}
+          </strong>
+          {moodEntryCount >= 3 && topMood.count > 0 && (
+            <span>
+              Most common mood: <b>{topMood.label}</b>
+            </span>
+          )}
+        </div>
     </section>
   )
 }
@@ -443,18 +469,26 @@ function Notebook({ user, onLock }) {
   const [day, setDay] = useState(today)
   const [saveStatus, setSaveStatus] = useState('saved')
   const [toggledMonths, setToggledMonths] = useState({})
+  const [archiveQuery, setArchiveQuery] = useState('')
   const [isListening, setIsListening] = useState(false)
   const [speechError, setSpeechError] = useState('')
+  const [backupMessage, setBackupMessage] = useState('')
+  const [inspiration, setInspiration] = useState({ day, open: false })
+  const showInspiration = inspiration.day === day && inspiration.open
 
   const topRef = useRef(null)
   const areaRef = useRef(null)
   const recognitionRef = useRef(null)
-  const dictationBaseRef = useRef('')
+  const entriesRef = useRef(entries)
+  const dayRef = useRef(day)
+  const saveTimerRef = useRef(null)
+  const idleResetRef = useRef(null)
+  const importRef = useRef(null)
 
   const displayEntries = useMemo(() => {
     const samples = {}
 
-    DEMO_PAGES.forEach(({ daysAgo, text }) => {
+    if (SHOW_DEMO) DEMO_PAGES.forEach(({ daysAgo, text }) => {
       let offset = daysAgo
       let key = dateKeyDaysAgo(today, offset)
 
@@ -526,6 +560,58 @@ function Notebook({ user, onLock }) {
     return Array.from(map, ([key, items]) => ({ key, items }))
   }, [days])
 
+  const filteredMonths = useMemo(
+    () => filterDiaryMonths(months, displayEntries, archiveQuery),
+    [archiveQuery, displayEntries, months],
+  )
+
+  const flushSave = useCallback((updateStatus = true) => {
+    window.clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = null
+
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(entriesRef.current))
+      if (updateStatus) setSaveStatus('saved')
+      return true
+    } catch {
+      if (updateStatus) setSaveStatus('error')
+      return false
+    }
+  }, [storageKey])
+
+  useEffect(() => {
+    const flushIfPending = () => {
+      if (saveTimerRef.current !== null) flushSave()
+    }
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flushIfPending()
+    }
+
+    window.addEventListener('pagehide', flushIfPending)
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      window.removeEventListener('pagehide', flushIfPending)
+      document.removeEventListener('visibilitychange', onVisibility)
+
+      if (saveTimerRef.current !== null) flushSave(false)
+    }
+  }, [flushSave])
+
+  useEffect(() => {
+    dayRef.current = day
+
+    // A recording must never continue into another diary page.
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop()
+      } catch {
+        // Recognition may already have stopped.
+      }
+    }
+  }, [day])
+
   // Stop an active microphone session when the diary is unmounted.
   useEffect(() => () => {
     const recognition = recognitionRef.current
@@ -547,7 +633,7 @@ function Notebook({ user, onLock }) {
 
   // Lock automatically after a period of inactivity.
   useEffect(() => {
-    const events = ['pointerdown', 'keydown', 'scroll']
+    const events = ['pointerdown', 'keydown', 'input', 'scroll']
     let timer
 
     const reset = () => {
@@ -555,12 +641,20 @@ function Notebook({ user, onLock }) {
       timer = window.setTimeout(onLock, IDLE_LOCK_MS)
     }
 
+    idleResetRef.current = reset
     reset()
-    events.forEach((name) => window.addEventListener(name, reset, { passive: true }))
+
+    events.forEach((name) => {
+      window.addEventListener(name, reset, { passive: true })
+    })
 
     return () => {
+      idleResetRef.current = null
       window.clearTimeout(timer)
-      events.forEach((name) => window.removeEventListener(name, reset))
+
+      events.forEach((name) => {
+        window.removeEventListener(name, reset)
+      })
     }
   }, [onLock])
 
@@ -584,6 +678,25 @@ function Notebook({ user, onLock }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [prevKey, nextKey])
 
+  // Prepare the desktop writing area without opening the mobile keyboard.
+  useEffect(() => {
+    if (!isToday || !editable) return
+    if (
+      typeof window.matchMedia !== 'function' ||
+      !window.matchMedia('(pointer: fine)').matches
+    ) return
+
+    const frame = window.requestAnimationFrame(() => {
+      const area = areaRef.current
+      if (!area) return
+
+      area.focus({ preventScroll: true })
+      area.setSelectionRange(area.value.length, area.value.length)
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [day, isToday, editable])
+
   // Auto-grow: the page is as tall as its text (with a minimum from `rows`).
   useLayoutEffect(() => {
     const el = areaRef.current
@@ -599,74 +712,93 @@ function Notebook({ user, onLock }) {
     return () => window.removeEventListener('resize', fit)
   }, [text, day])
 
-  function persistEntries(next) {
+  function commit(next) {
+    // Update the ref immediately so rapid typing and dictation never use
+    // an outdated React state snapshot.
+    entriesRef.current = next
     setEntries(next)
+    setSaveStatus('saving')
 
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(next))
-      setSaveStatus('saved')
-    } catch {
-      setSaveStatus('error')
-    }
+    window.clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = window.setTimeout(() => {
+      flushSave()
+    }, 500)
   }
 
   function write(value) {
     if (!editable) return
 
-    const next = {
-      ...entries,
-      [day]: {
-        ...(entries[day] || {}),
-        text: value,
-      },
+    const target = dayRef.current
+
+    if (inspiration.day === target && inspiration.open) {
+      setInspiration({ day: target, open: false })
     }
 
-    persistEntries(next)
+    const current = entriesRef.current
+
+    commit({
+      ...current,
+      [target]: {
+        ...(current[target] || {}),
+        text: value,
+      },
+    })
   }
 
   function updateMood(value) {
     if (!editable) return
 
-    const current = entries[day] || {}
+    const target = dayRef.current
+    if (inspiration.day === target && inspiration.open) {
+      setInspiration({ day: target, open: false })
+    }
+    const current = entriesRef.current[target] || {}
+
     const nextEntry = {
       ...current,
       text: current.text || '',
     }
 
-    // Tapping the selected mood again removes it.
     if (current.mood === value) {
       delete nextEntry.mood
     } else {
       nextEntry.mood = value
     }
 
-    const next = { ...entries }
+    const next = { ...entriesRef.current }
 
-    // Do not keep an entirely empty entry.
     if (!nextEntry.text.trim() && !nextEntry.mood) {
-      delete next[day]
+      delete next[target]
     } else {
-      next[day] = nextEntry
+      next[target] = nextEntry
     }
 
-    persistEntries(next)
+    commit(next)
   }
 
   function insertStarter(phrase) {
-    if (!editable) return
+    if (!editable || !phrase?.trim()) return
 
-    const separator = text
-      ? (text.endsWith('\n') ? '' : '\n\n')
-      : ''
+    const target = dayRef.current
+    const currentText = areaRef.current?.value
+      ?? entriesRef.current[target]?.text
+      ?? ''
+    const value = phrase.trim()
 
-    write(`${text}${separator}${phrase}`)
+    // Do not append a prompt or starter that is already in this entry.
+    if (currentText.toLocaleLowerCase().includes(value.toLocaleLowerCase())) {
+      areaRef.current?.focus()
+      return
+    }
+
+    // Keep inserted prompts on a single new line.
+    const trimmedText = currentText.replace(/\s+$/, '')
+    write(trimmedText ? `${trimmedText}\n${value}` : value)
     areaRef.current?.focus()
   }
-
   function toggleDictation() {
     if (!SpeechRecognitionAPI || !editable) return
 
-    // The same button stops an active dictation session.
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop()
@@ -677,32 +809,40 @@ function Notebook({ user, onLock }) {
       return
     }
 
+    const dictationDay = dayRef.current
+
     try {
       const recognition = new SpeechRecognitionAPI()
 
-      dictationBaseRef.current = areaRef.current?.value || text
-
       recognition.lang = LOCALE
       recognition.interimResults = false
-      recognition.continuous = false
+      recognition.continuous = true
       recognition.maxAlternatives = 1
 
       recognition.onstart = () => {
         setIsListening(true)
         setSpeechError('')
+        idleResetRef.current?.()
       }
 
       recognition.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .filter((result) => result.isFinal)
-          .map((result) => result[0]?.transcript || '')
-          .join(' ')
-          .trim()
+        idleResetRef.current?.()
 
+        // Ignore late results from a page that is no longer selected.
+        if (dayRef.current !== dictationDay) return
+
+        let transcript = ''
+
+        for (let index = event.resultIndex; index < event.results.length; index += 1) {
+          if (event.results[index].isFinal) {
+            transcript += `${event.results[index][0]?.transcript || ''} `
+          }
+        }
+
+        transcript = transcript.trim()
         if (!transcript) return
 
-        // Read the current textarea value so existing edits are preserved.
-        const currentText = areaRef.current?.value ?? dictationBaseRef.current
+        const currentText = entriesRef.current[dictationDay]?.text || ''
         const separator = currentText && !/\s$/.test(currentText) ? ' ' : ''
 
         write(`${currentText}${separator}${transcript}`)
@@ -725,7 +865,9 @@ function Notebook({ user, onLock }) {
       }
 
       recognition.onend = () => {
-        recognitionRef.current = null
+        if (recognitionRef.current === recognition) {
+          recognitionRef.current = null
+        }
         setIsListening(false)
       }
 
@@ -739,6 +881,56 @@ function Notebook({ user, onLock }) {
     }
   }
 
+  function handleExport(format) {
+    try {
+      flushSave()
+
+      if (format === 'json') {
+        exportJSON(entriesRef.current)
+        setBackupMessage('JSON backup download started.')
+      } else {
+        exportMarkdown(entriesRef.current, formatLongDate, MOODS)
+        setBackupMessage('Markdown export download started.')
+      }
+    } catch {
+      setBackupMessage('The diary could not be exported. Please try again.')
+    }
+  }
+
+  async function handleImport(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) return
+
+    try {
+      const incoming = parseImport(await file.text())
+      const next = { ...entriesRef.current }
+      let added = 0
+      let skipped = 0
+
+      Object.entries(incoming).forEach(([key, entry]) => {
+        if (Object.prototype.hasOwnProperty.call(next, key)) {
+          skipped += 1
+        } else {
+          next[key] = entry
+          added += 1
+        }
+      })
+
+      if (added > 0) commit(next)
+
+      setBackupMessage(
+        `${added} ${added === 1 ? 'page' : 'pages'} imported` +
+        (skipped
+          ? `, ${skipped} skipped because they already exist.`
+          : '.'),
+      )
+    } catch (error) {
+      setBackupMessage(error.message || 'This file could not be imported.')
+    }
+  }
+
   // Used by the list and the calendar, which sit below the page.
   function selectDay(key) {
     setDay(key)
@@ -747,65 +939,139 @@ function Notebook({ user, onLock }) {
 
   let statusText
   if (!editable) statusText = 'Past pages are read-only'
-  else if (saveStatus !== 'saved') statusText = 'Could not save. Check your browser storage.'
+  else if (saveStatus === 'error') statusText = 'Could not save. Check your browser storage.'
+  else if (saveStatus === 'saving') statusText = 'Saving…'
   else if (!isToday) statusText = 'Editing a past page · Saved on this device'
   else statusText = 'Saved on this device'
 
   return (
     <div className="diary-page">
       <header className="diary-header" ref={topRef}>
-        <div>
-          <p className="diary-eyebrow">MY DIARY</p>
-          <h1>{isToday ? 'Today’s page' : formatHeading(day)}</h1>
-          {!isToday && <p className="diary-relative">{relativeLabel(today, day)}</p>}
-        </div>
+          <div className="diary-heading-copy">
+            <p className="diary-eyebrow">MY DIARY</p>
+            <div className="diary-title-row">
+              <h1>{isToday ? 'Today’s page' : formatHeading(day)}</h1>
+              {pageKeys.length > 1 && (
+                <nav className="diary-pager" aria-label="Diary pages">
+                  <button
+                    type="button"
+                    className="diary-pager-button"
+                    onClick={() => prevKey && setDay(prevKey)}
+                    disabled={!prevKey}
+                    aria-label={prevKey ? `Previous page, ${formatLongDate(prevKey)}` : 'No earlier page'}
+                    title={prevKey ? formatShortDate(prevKey) : 'No older page'}
+                  >
+                    <ChevronLeft size={17} />
+                  </button>
+                  <button
+                    type="button"
+                    className="diary-pager-button"
+                    onClick={() => nextKey && setDay(nextKey)}
+                    disabled={!nextKey}
+                    aria-label={nextKey ? `Next page, ${formatLongDate(nextKey)}` : 'No newer page'}
+                    title={nextKey ? (nextKey === today ? 'Today' : formatShortDate(nextKey)) : 'No newer page'}
+                  >
+                    <ChevronRight size={17} />
+                  </button>
+                  {!isToday && (
+                    <button type="button" className="diary-back-button" onClick={() => setDay(today)}>
+                      Back to today
+                    </button>
+                  )}
+                </nav>
+              )}
+            </div>
+            {!isToday && <p className="diary-relative">{relativeLabel(today, day)}</p>}
+          </div>
 
-        <button type="button" className="diary-lock-button" onClick={onLock}>
-          <Lock size={16} />
-          <span>Lock</span>
-        </button>
-      </header>
-
-      {pageKeys.length > 1 && (
-        <nav className="diary-pager" aria-label="Diary pages">
-          <button
-            type="button"
-            className="diary-pager-button"
-            onClick={() => prevKey && setDay(prevKey)}
-            disabled={!prevKey}
-            aria-label={prevKey ? `Previous page, ${formatLongDate(prevKey)}` : 'No earlier page'}
-          >
-            <ChevronLeft size={17} />
-            <span>{prevKey ? formatShortDate(prevKey) : 'Older'}</span>
+          <button type="button" className="diary-lock-button" onClick={onLock}>
+            <Lock size={16} />
+            <span>Lock</span>
           </button>
+        </header>
 
-          <button
-            type="button"
-            className="diary-pager-button"
-            onClick={() => nextKey && setDay(nextKey)}
-            disabled={!nextKey}
-            aria-label={nextKey ? `Next page, ${formatLongDate(nextKey)}` : 'No newer page'}
-          >
-            <span>{nextKey ? (nextKey === today ? 'Today' : formatShortDate(nextKey)) : 'Newer'}</span>
-            <ChevronRight size={17} />
-          </button>
 
-          {!isToday && (
-            <button type="button" className="diary-back-button" onClick={() => setDay(today)}>
-              <ChevronLeft size={17} />
-              Back to today
-            </button>
-          )}
-        </nav>
-      )}
 
-      {(editable || selectedMood) && (
-        <section className="diary-writing-tools" aria-label="Writing helpers">
-          {editable ? (
-            <div className="diary-mood-row">
-              <span className="diary-tool-label">How are you feeling?</span>
+      <article
+        key={day}
+        className={`diary-paper is-entering${isToday ? ' is-today' : ' is-past'}${editable ? '' : ' is-readonly'}`}
+      >
+        <span className="diary-ribbon" aria-hidden="true" />
 
-              <div className="diary-mood-options">
+        <p className="diary-paper-date">{formatLongDate(day)}</p>
+        {editable && (
+          <div className="diary-inspiration">
+            {!text.trim() && !selectedMood && (
+              <button
+                type="button"
+                className="diary-inspiration-toggle"
+              aria-expanded={showInspiration}
+              aria-controls="diary-inspiration-panel"
+              onClick={() => setInspiration({ day, open: !showInspiration })}
+            >
+              <span>
+                {showInspiration ? 'Hide inspiration' : 'Need a little inspiration?'}
+              </span>
+                <ChevronDown size={15} aria-hidden="true" />
+              </button>
+            )}
+
+            {showInspiration && !text.trim() && !selectedMood && (
+              <div id="diary-inspiration-panel" className="diary-inspiration-panel">
+                <button
+                  type="button"
+                  className="diary-paper-prompt"
+                  onClick={() => {
+                    insertStarter(dailyPrompt)
+                    setInspiration({ day, open: false })
+                  }}
+                  aria-label={`Add prompt to diary: ${dailyPrompt}`}
+                  title="Add this prompt to your page"
+                >
+                  {dailyPrompt}
+                </button>
+
+                <div
+                  className={`diary-starters${text.trim() ? ' is-hidden' : ''}`}
+                  aria-label="Writing starters"
+                  aria-hidden={!!text.trim()}
+                >
+                  <span className="diary-starters-label">Or start with</span>
+                  {STARTER_PHRASES.map((starter) => (
+                    <button
+                      key={starter.label}
+                      type="button"
+                      disabled={!!text.trim()}
+                      onClick={() => {
+                        insertStarter(starter.text)
+                        setInspiration({ day, open: false })
+                      }}
+                    >
+                      {starter.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+<textarea
+          ref={areaRef}
+          rows={isToday ? 9 : 4}
+          value={text}
+          readOnly={!editable}
+          onChange={(event) => write(event.target.value)}
+          spellCheck={false}
+          placeholder={isToday ? 'Start wherever you are…' : ''}
+          aria-label={`Diary page for ${formatLongDate(day)}`}
+        />
+
+        <footer className="diary-paper-footer">
+          <div className="diary-footer-mood">
+            {editable ? (
+              <>
+                <span className="diary-tool-label">Mood</span>
                 {MOODS.map((mood) => (
                   <button
                     key={mood.value}
@@ -816,114 +1082,89 @@ function Notebook({ user, onLock }) {
                     title={mood.label}
                     onClick={() => updateMood(mood.value)}
                   >
-                    <span aria-hidden="true">{mood.emoji}</span>
-                    <small>{mood.label}</small>
+                    <MoodIcon mood={mood.value} size={20} />
                   </button>
                 ))}
+              </>
+            ) : selectedMood ? (
+              <div className="diary-past-mood">
+                <MoodIcon mood={selectedMood} size={18} />
+                <span>
+                  You felt {MOODS.find((mood) => mood.value === selectedMood)?.label.toLowerCase()}
+                </span>
               </div>
-            </div>
-          ) : (
-            <div className="diary-past-mood">
-              <span aria-hidden="true">
-                {MOODS.find((mood) => mood.value === selectedMood)?.emoji}
-              </span>
-              <span>
-                You felt {MOODS.find((mood) => mood.value === selectedMood)?.label.toLowerCase()}
-              </span>
-            </div>
-          )}
+            ) : null}
+          </div>
 
-          {editable && (
-            <div className="diary-prompt-card">
-              <div className="diary-prompt-copy">
-                <small>A LITTLE PROMPT</small>
-                <p>{dailyPrompt}</p>
-              </div>
-
-              <div className="diary-starters" aria-label="Writing starters">
-                {STARTER_PHRASES.map((starter) => (
-                  <button
-                    key={starter.label}
-                    type="button"
-                    onClick={() => insertStarter(starter.text)}
-                  >
-                    {starter.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
-      )}
-
-      <article
-        key={day}
-        className={`diary-paper is-entering${isToday ? '' : ' is-past'}${editable ? '' : ' is-readonly'}`}
-      >
-        <span className="diary-ribbon" aria-hidden="true" />
-        <p className="diary-paper-date">{formatLongDate(day)}</p>
-
-        <div className="diary-editor-toolbar">
-          <span className="diary-word-count">
-            {wordCount} {wordCount === 1 ? 'word' : 'words'}
-          </span>
-
-          {editable && SpeechRecognitionAPI && (
-            <button
-              type="button"
-              className={`diary-dictation-button${isListening ? ' is-listening' : ''}`}
-              onClick={toggleDictation}
-              aria-label={isListening ? 'Stop voice typing' : 'Start voice typing'}
-              aria-pressed={isListening}
-              title={isListening ? 'Stop voice typing' : 'Dictate your diary entry'}
-            >
-              {isListening ? <MicOff size={16} /> : <Mic size={16} />}
-              <span>{isListening ? 'Stop listening' : 'Dictate'}</span>
-            </button>
-          )}
-
-          {editable && !SpeechRecognitionAPI && (
-            <span className="diary-dictation-unavailable">
-              Voice typing is not supported in this browser.
+          <div className="diary-footer-meta">
+            <span className="diary-word-count">
+              {wordCount} {wordCount === 1 ? 'word' : 'words'}
             </span>
+
+            {editable && SpeechRecognitionAPI && (
+              <button
+                type="button"
+                className={`diary-dictation-button${isListening ? ' is-listening' : ''}`}
+                onClick={toggleDictation}
+                aria-label={isListening ? 'Stop voice typing' : 'Start voice typing'}
+                aria-pressed={isListening}
+                title={isListening ? 'Stop voice typing' : 'Dictate your diary entry'}
+              >
+                {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                <span>{isListening ? 'Stop' : 'Dictate'}</span>
+              </button>
+            )}
+
+            {editable && !SpeechRecognitionAPI && (
+              <span className="diary-dictation-unavailable">
+                Voice typing is not supported in this browser.
+              </span>
+            )}
+
+            <small className="diary-paper-status">{statusText}</small>
+          </div>
+
+          {speechError && editable && (
+            <p className="diary-speech-error" role="alert">
+              {speechError}
+            </p>
           )}
-        </div>
-
-        {speechError && editable && (
-          <p className="diary-speech-error" role="alert">
-            {speechError}
-          </p>
-        )}
-
-        <textarea
-          ref={areaRef}
-          rows={isToday ? 10 : 4}
-          value={text}
-          readOnly={!editable}
-          onChange={(event) => write(event.target.value)}
-          spellCheck={false}
-          placeholder={isToday ? 'Start wherever you are…' : ''}
-          aria-label={`Diary page for ${formatLongDate(day)}`}
-        />
-
-        <small className="diary-paper-status">{statusText}</small>
+        </footer>
       </article>
 
       {!!days.length && (
-        <div className="diary-archive">
+        <div className="diary-archive" id="diary-archive">
           <MiniCalendar
             key={day.slice(0, 7)}
             today={today}
             selected={day}
             written={written}
+            entries={displayEntries}
             onPick={selectDay}
           />
 
           <section className="diary-archive-list">
-            <h2>Earlier pages</h2>
+            <div className="diary-archive-heading">
+              <h2>Earlier pages</h2>
 
-            {months.map(({ key, items }, index) => {
-              const open = toggledMonths[key] ?? (index === 0 || key === day.slice(0, 7))
+              <label className="diary-search-field">
+                <Search size={16} aria-hidden="true" />
+                <input
+                  type="search"
+                  value={archiveQuery}
+                  onChange={(event) => setArchiveQuery(event.target.value)}
+                  placeholder="Search your pages…"
+                  aria-label="Search diary entries"
+                  autoComplete="off"
+                />
+              </label>
+            </div>
+
+            {filteredMonths.length > 0 ? (
+              filteredMonths.map(({ key, items }, index) => {
+                const open = Boolean(archiveQuery.trim()) || (
+                  toggledMonths[key] ?? (index === 0 || key === day.slice(0, 7))
+                )
 
               return (
                 <div className="diary-month" key={key}>
@@ -943,6 +1184,9 @@ function Notebook({ user, onLock }) {
                       {items.map((itemKey) => {
                         const entryText = displayEntries[itemKey].text.trim()
                         const words = countWords(entryText)
+                        const searchSnippet = archiveQuery.trim()
+                          ? getDiarySearchSnippet(entryText, archiveQuery)
+                          : null
 
                         return (
                           <li key={itemKey}>
@@ -957,7 +1201,18 @@ function Notebook({ user, onLock }) {
                                 <b>{parseKey(itemKey).getDate()}</b>
                               </span>
                               <span className="diary-archive-preview">
-                                {entryText.replace(/\s+/g, ' ').slice(0, 140) || (displayEntries[itemKey].mood ? 'Mood check-in' : '')}
+                                {searchSnippet ? (
+                                  <>
+                                    {searchSnippet.leading && '…'}
+                                    {searchSnippet.before}
+                                    <mark className="diary-search-match">{searchSnippet.match}</mark>
+                                    {searchSnippet.after}
+                                    {searchSnippet.trailing && '…'}
+                                  </>
+                                ) : (
+                                  entryText.replace(/\s+/g, ' ').slice(0, 140) ||
+                                  (displayEntries[itemKey].mood ? 'Mood check-in' : '')
+                                )}
                               </span>
                               <span className="diary-archive-meta">
                                 {words ? `${words} ${words === 1 ? 'word' : 'words'}` : displayEntries[itemKey].mood ? 'Mood saved' : '0 words'}
@@ -970,10 +1225,62 @@ function Notebook({ user, onLock }) {
                   )}
                 </div>
               )
-            })}
+              })
+            ) : (
+              <p className="diary-search-empty" role="status">
+                No pages match “{archiveQuery.trim()}”. Try another word.
+              </p>
+            )}
           </section>
         </div>
       )}
+      {!days.length && (
+        <p className="diary-empty">
+          Your earlier pages will gather here. Write today’s page and it becomes the first one.
+        </p>
+      )}
+
+      <section className="diary-backup" aria-label="Diary backup">
+        <div className="diary-backup-copy">
+          <h2>Back up your diary</h2>
+          <p>
+            Your entries live only in this browser. Export a copy now and then.
+            Exported files are not encrypted.
+          </p>
+        </div>
+
+        <div className="diary-backup-actions">
+          <button type="button" onClick={() => handleExport('json')}>
+            <Download size={15} />
+            JSON
+          </button>
+
+          <button type="button" onClick={() => handleExport('md')}>
+            <Download size={15} />
+            Markdown
+          </button>
+
+          <button type="button" onClick={() => importRef.current?.click()}>
+            <Upload size={15} />
+            Import
+          </button>
+
+          <input
+            ref={importRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={handleImport}
+          />
+        </div>
+
+        {backupMessage && (
+          <p className="diary-backup-message" role="status" aria-live="polite">
+            {backupMessage}
+          </p>
+        )}
+      </section>
+
     </div>
   )
 }

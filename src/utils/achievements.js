@@ -1,3 +1,4 @@
+import { getCheckins } from './hobbies.js'
 // Başarımlar: hobi verisinden hesaplanır, kazanılınca tarihiyle hobiye kaydedilir.
 // Yeni başarım eklemek için GENERIC veya TEMPLATE_ACHIEVEMENTS listesine bir satır eklemek yeterli.
 import { todayKey, weekCount, weeksStreak } from './hobbies.js'
@@ -5,7 +6,7 @@ import { todayKey, weekCount, weeksStreak } from './hobbies.js'
 function stats(hobby) {
   const sessions = hobby.sessions ?? []
   const tasks = hobby.stages.flatMap((stage) => stage.tasks)
-  const dates = [...new Set(hobby.checkins)].sort()
+  const dates = [...new Set(getCheckins(hobby))].sort()
 
   // En az 3 gün ara verip geri dönüldü mü?
   let cameBack = false
@@ -97,7 +98,7 @@ export function achievementProgress(hobby, achievement) {
   )
   const sessions = Array.isArray(hobby.sessions) ? hobby.sessions : []
   const days = new Set(
-    Array.isArray(hobby.checkins) ? hobby.checkins : [],
+    getCheckins(hobby),
   ).size
 
   const progress = (current, target, unit) => ({

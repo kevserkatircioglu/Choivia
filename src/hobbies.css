@@ -461,3 +461,1270 @@
     transition: none;
   }
 }
+
+/* Phase 1 — hobby UI quick refinements */
+
+/* Make expandable sections visibly expandable. */
+.hb-stage > summary::after,
+.hb-tip > summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-left: 8px;
+  flex: none;
+  border-right: 2px solid var(--hb-muted);
+  border-bottom: 2px solid var(--hb-muted);
+  transform: rotate(45deg);
+  transition: transform 180ms ease;
+}
+
+.hb-stage[open] > summary::after,
+.hb-tip[open] > summary::after {
+  transform: rotate(-135deg);
+}
+
+/* Selected template gets a distinct icon surface. */
+.hb-template.selected .hb-emoji-lg {
+  background: #fff;
+  color: var(--hb-green);
+  box-shadow: 0 2px 8px rgba(47, 93, 69, 0.12);
+}
+
+/* The custom template becomes a balanced full-width option. */
+.hb-template-blank {
+  grid-column: 1 / -1;
+  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 12px;
+  min-height: 76px;
+}
+
+.hb-template-blank .hb-emoji-lg {
+  grid-row: 1 / 3;
+}
+
+.hb-template-blank strong,
+.hb-template-blank small {
+  align-self: end;
+}
+
+/* Empty practice log. */
+.hb-log-empty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px dashed var(--hb-line);
+  border-radius: 16px;
+  background: #fbfcf8;
+}
+
+.hb-log-empty > span {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 14px;
+  background: var(--hb-soft);
+  font-size: 24px;
+}
+
+.hb-log-empty strong {
+  color: var(--hb-ink);
+}
+
+.hb-log-empty p {
+  margin: 3px 0 0;
+  color: var(--hb-muted);
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hb-stage > summary::after,
+  .hb-tip > summary::after {
+    transition: none;
+  }
+}
+
+/* Phase 1B — task menus, undo, heatmap labels and template metadata */
+
+/* Quiet task options menu */
+.hb-task-menu {
+  position: relative;
+  flex: none;
+}
+
+.hb-task-menu > summary {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--hb-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.hb-task-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.hb-task-menu[open] > summary,
+.hb-task-menu > summary:hover {
+  background: var(--hb-soft);
+  color: var(--hb-green);
+}
+
+.hb-task-menu > div {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  min-width: 172px;
+  padding: 6px;
+  border: 1px solid var(--hb-line);
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(38, 56, 46, 0.14);
+}
+
+.hb-task-menu > div button {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--hb-ink);
+  font: 600 14px 'DM Sans', sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hb-task-menu > div button:hover {
+  background: var(--hb-soft);
+}
+
+.hb-task-menu > div button:last-child:not(:first-child) {
+  color: var(--hb-danger);
+}
+
+.hb-next-menu {
+  align-self: center;
+}
+
+/* Undo toast after a task is removed */
+.hb-undo-toast {
+  position: sticky;
+  top: 12px;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid #d7e5cf;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--hb-ink);
+  box-shadow: 0 8px 24px rgba(38, 56, 46, 0.12);
+}
+
+.hb-undo-toast button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--hb-soft);
+  color: var(--hb-green);
+  font: 700 14px 'DM Sans', sans-serif;
+  cursor: pointer;
+}
+
+/* Heatmap axes */
+.hb-heatmap-frame {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hb-heatmap-day-labels {
+  display: grid;
+  grid-template-rows: 16px repeat(7, 18px);
+  gap: 4px;
+  flex: none;
+  padding-top: 4px;
+  color: var(--hb-muted);
+  font-size: 10px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.hb-heatmap {
+  flex: 1;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.hb-heat-col {
+  display: grid;
+  grid-template-rows: 16px repeat(7, 18px);
+  gap: 4px;
+  flex: none;
+}
+
+.hb-heat-month {
+  min-height: 16px;
+  color: var(--hb-muted);
+  font-size: 10px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* Template metadata */
+.hb-template-meta {
+  display: grid;
+  gap: 2px;
+  color: var(--hb-muted);
+  font-size: 14px !important;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hb-task-menu > summary {
+    transition: none;
+  }
+}
+
+/* HOBBY_DETAIL_TABS_PHASE2 */
+
+/* Detail header and overflow menu */
+.hb-detail-page {
+  position: relative;
+}
+
+.hb-detail-head {
+  position: relative;
+  padding-right: 48px;
+}
+
+.hb-detail-title {
+  min-width: 0;
+}
+
+.hb-detail-menu {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  z-index: 40;
+}
+
+.hb-detail-menu > summary {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--hb-line);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--hb-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.hb-detail-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.hb-detail-menu[open] > summary {
+  background: var(--hb-soft);
+  color: var(--hb-green);
+}
+
+.hb-detail-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(310px, calc(100vw - 44px));
+  padding: 16px;
+  border: 1px solid var(--hb-line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(38, 56, 46, 0.16);
+}
+
+.hb-detail-menu-panel > .eyebrow {
+  margin: 0 0 8px;
+  color: var(--hb-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.hb-detail-menu-panel .hb-field {
+  margin-top: 10px;
+}
+
+.hb-detail-menu-panel .hb-danger {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 16px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+/* Three clear tabs */
+.hb-tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin: 18px 0;
+  padding: 5px;
+  border: 1px solid var(--hb-line);
+  border-radius: 16px;
+  background: #f1f5ed;
+}
+
+.hb-tabs button {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--hb-muted);
+  font: 700 14px 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.hb-tabs button.active {
+  background: #fff;
+  color: var(--hb-green);
+  box-shadow: 0 2px 8px rgba(38, 56, 46, 0.08);
+}
+
+.hb-tab-panel[hidden] {
+  display: none !important;
+}
+
+/* Today hierarchy: plant → next step → week → optional note form */
+.hb-today-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hb-today-tab .hb-plant {
+  order: 1;
+  align-items: center;
+  min-height: 144px;
+  padding: 22px;
+  margin: 0;
+  background: linear-gradient(125deg, #f0f7e9, #fff8e9);
+}
+
+.hb-today-tab .hb-plant-visual {
+  flex: none;
+}
+
+.hb-today-tab .hb-milestone {
+  order: 2;
+  margin: 0;
+}
+
+.hb-today-tab .hb-next {
+  order: 3;
+  margin: 0;
+  padding: 22px;
+}
+
+.hb-today-tab .hb-panel {
+  order: 4;
+  margin: 0;
+}
+
+.hb-today-tab .hb-log {
+  order: 5;
+  margin: 0;
+}
+
+/* The same check-in button becomes the mobile dock. */
+.hb-checkin-dock {
+  flex: none;
+}
+
+.hb-checkin-dock .hb-checkin {
+  min-height: 48px;
+  background: var(--hb-green);
+  border-color: var(--hb-green);
+  color: #fff;
+}
+
+.hb-checkin-dock .hb-checkin.on {
+  background: #5f9a62;
+  border-color: #5f9a62;
+}
+
+/* Tabs and action dock on smaller screens */
+@media (max-width: 820px) {
+  .hb-detail-page {
+    padding-bottom: calc(178px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .hb-tabs {
+    position: sticky;
+    top: 60px;
+    z-index: 30;
+    margin: 12px 0 18px;
+    background: #f1f5edee;
+    backdrop-filter: blur(12px);
+  }
+
+  .hb-tabs button {
+    min-height: 42px;
+  }
+
+  .hb-checkin-dock {
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+    z-index: 45;
+    padding: 8px;
+    border: 1px solid var(--hb-line);
+    border-radius: 18px;
+    background: #ffffffed;
+    box-shadow: 0 8px 26px rgba(38, 56, 46, 0.16);
+    backdrop-filter: blur(12px);
+  }
+
+  .hb-checkin-dock .hb-checkin {
+    width: 100%;
+    min-height: 50px;
+  }
+
+  .hb-today-tab .hb-panel-row {
+    padding-bottom: 4px;
+  }
+}
+
+@media (max-width: 420px) {
+  .hb-detail-head {
+    gap: 10px;
+  }
+
+  .hb-detail-head .hb-emoji-xl {
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+  }
+
+  .hb-tabs button {
+    padding: 0 5px;
+    font-size: 13px;
+  }
+
+  .hb-today-tab .hb-plant {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .hb-today-tab .hb-plant-visual {
+    width: 82px;
+    height: 82px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hb-tabs button {
+    transition: none;
+  }
+}
+
+/* Phase 3B — lower-friction hobby creation */
+.hb-quick-create {
+  gap: 12px;
+  max-width: 560px;
+  padding: 20px;
+}
+
+.hb-quick-create .hb-primary {
+  min-width: 150px;
+  min-height: 48px;
+  justify-self: start;
+}
+
+.hb-quick-create .hb-hint {
+  margin: 0;
+  max-width: 52ch;
+  line-height: 1.5;
+}
+
+/* Phase 3C — practice session flow */
+
+/* Place the single session action outside tab content. */
+.hb-detail-page > .hb-checkin-dock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  margin: 0 0 14px;
+}
+
+.hb-detail-page > .hb-checkin-dock .hb-checkin {
+  min-height: 48px;
+  padding: 0 22px;
+  background: var(--hb-green);
+  border-color: var(--hb-green);
+  color: #fff;
+}
+
+.hb-detail-page > .hb-checkin-dock .hb-checkin.on {
+  background: #5f9a62;
+  border-color: #5f9a62;
+}
+
+/* Past days can be tapped for compassionate backfill. */
+.hb-week > button {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.hb-week > button:not(:disabled) {
+  cursor: pointer;
+}
+
+.hb-week > button:not(:disabled):hover i {
+  outline: 2px solid #9dbd8b;
+  outline-offset: 2px;
+}
+
+.hb-week > button:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.hb-week > button:focus-visible {
+  outline: 2px solid var(--hb-green);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+.hb-session-running {
+  display: block;
+  color: var(--hb-green);
+  font-size: 12px;
+  text-align: right;
+}
+
+/* Gentle diary bridge after saving a session. */
+.hb-diary-bridge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 9px;
+  margin: 0;
+  padding: 13px 15px;
+  border: 1px solid #e4e7d8;
+  border-radius: 15px;
+  background: #fffdf6;
+  color: var(--hb-muted);
+  font-size: 14px;
+}
+
+.hb-diary-bridge a {
+  color: var(--hb-green);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Completion sheet */
+.hb-session-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(24, 39, 30, 0.48);
+  backdrop-filter: blur(5px);
+  animation: hb-session-fade 180ms ease-out;
+}
+
+.hb-session-sheet {
+  display: grid;
+  gap: 15px;
+  width: min(100%, 560px);
+  max-height: min(90dvh, 780px);
+  overflow-y: auto;
+  padding: 24px;
+  border: 1px solid var(--hb-line);
+  border-radius: 25px;
+  background: #fffefa;
+  box-shadow: 0 24px 70px rgba(20, 35, 25, 0.25);
+  animation: hb-session-rise 240ms ease-out;
+}
+
+.hb-session-head {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.hb-session-head > div {
+  min-width: 0;
+}
+
+.hb-session-head .eyebrow {
+  margin: 0 0 4px;
+  color: var(--hb-green);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+}
+
+.hb-session-head h2 {
+  margin: 0;
+  color: var(--hb-ink);
+  font: 800 22px/1.2 'Manrope', sans-serif;
+}
+
+.hb-session-head p:last-child {
+  margin: 5px 0 0;
+  color: var(--hb-muted);
+  font-size: 13px;
+}
+
+.hb-session-step {
+  display: grid;
+  gap: 9px;
+  padding: 14px;
+  border-radius: 15px;
+  background: #f4f7ef;
+}
+
+.hb-session-step > strong {
+  font-size: 14px;
+}
+
+.hb-session-choice,
+.hb-session-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.hb-session-choice button {
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid var(--hb-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--hb-ink);
+  font: 700 13px 'DM Sans', sans-serif;
+  cursor: pointer;
+}
+
+.hb-session-choice button.active {
+  border-color: var(--hb-green);
+  background: #e7f0df;
+  color: var(--hb-green);
+}
+
+.hb-session-sheet .hb-field {
+  margin-top: 0;
+}
+
+.hb-session-sheet .hb-field input,
+.hb-session-sheet .hb-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.hb-first-reflection {
+  padding-top: 12px;
+  border-top: 1px solid var(--hb-line);
+}
+
+.hb-session-actions {
+  margin-top: 3px;
+}
+
+.hb-session-actions button {
+  min-height: 48px;
+}
+
+@keyframes hb-session-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes hb-session-rise {
+  from { opacity: 0; transform: translateY(12px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 820px) {
+  .hb-detail-page > .hb-checkin-dock {
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+    z-index: 45;
+    align-items: stretch;
+    margin: 0;
+    padding: 8px;
+    border: 1px solid var(--hb-line);
+    border-radius: 18px;
+    background: #ffffffed;
+    box-shadow: 0 8px 26px rgba(38, 56, 46, 0.16);
+    backdrop-filter: blur(12px);
+  }
+
+  .hb-detail-page > .hb-checkin-dock .hb-checkin {
+    width: 100%;
+    min-height: 50px;
+  }
+
+  .hb-detail-page > .hb-checkin-dock .hb-session-running {
+    text-align: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .hb-session-overlay {
+    align-items: end;
+    padding: 0;
+  }
+
+  .hb-session-sheet {
+    width: 100%;
+    max-height: 92dvh;
+    padding: 22px 18px calc(22px + env(safe-area-inset-bottom, 0px));
+    border-radius: 25px 25px 0 0;
+  }
+
+  .hb-session-head {
+    align-items: flex-start;
+  }
+
+  .hb-session-head h2 {
+    font-size: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hb-session-overlay,
+  .hb-session-sheet {
+    animation: none;
+  }
+}
+
+
+/* Phase 4 — individual hobby identities */
+[data-hobby-theme="violin"] {
+  --hb-green: #75568d;
+  --hb-soft: #f3edf7;
+  --hb-line: #e4d9eb;
+  --hb-accent: #8969a2;
+  --plant-bg: #f4eef8;
+  --plant-pot: #dfc9ec;
+  --plant-pot-end: #af91c8;
+  --plant-pot-edge: #9576aa;
+  --plant-pot-rim: #c3a8d7;
+  --plant-pot-highlight: #f2e3f7;
+  --plant-pot-detail: #ead4f2;
+  --plant-flower: #c894d7;
+  --plant-flower-light: #e1c2ec;
+  --plant-stem: #76558b;
+  --plant-leaf: #8b6aa5;
+  --plant-leaf-light: #b69ac9;
+  --plant-leaf-mid: #795c94;
+  --plant-leaf-pale: #a78abb;
+  --plant-leaf-top: #9876ad;
+  --plant-leaf-edge: #76558b;
+  --plant-leaf-edge-dark: #644777;
+  --plant-leaf-vein: #eadcf1;
+}
+
+[data-hobby-theme="guitar"] {
+  --hb-green: #98602f;
+  --hb-soft: #fbf0e3;
+  --hb-line: #edddc9;
+  --hb-accent: #aa6e36;
+  --plant-bg: #fbf1e5;
+  --plant-pot: #efc18d;
+  --plant-pot-end: #cd8a4e;
+  --plant-pot-edge: #ad6e3b;
+  --plant-pot-rim: #d99c64;
+  --plant-pot-highlight: #f8dfbd;
+  --plant-pot-detail: #f2c999;
+  --plant-flower: #e7a45e;
+  --plant-flower-light: #f3c78c;
+  --plant-stem: #8a693f;
+  --plant-leaf: #8ca56a;
+  --plant-leaf-light: #b4c58b;
+  --plant-leaf-mid: #789254;
+  --plant-leaf-pale: #a8bb7b;
+  --plant-leaf-top: #96ad68;
+  --plant-leaf-edge: #71864f;
+  --plant-leaf-edge-dark: #647643;
+  --plant-leaf-vein: #e7edcf;
+}
+
+[data-hobby-theme="drawing"] {
+  --hb-green: #3f788d;
+  --hb-soft: #eaf3f6;
+  --hb-line: #d4e5eb;
+  --hb-accent: #4c8798;
+  --plant-bg: #eef7f9;
+  --plant-pot: #b7dce7;
+  --plant-pot-end: #72aebb;
+  --plant-pot-edge: #548b9a;
+  --plant-pot-rim: #91c9d8;
+  --plant-pot-highlight: #e2f3f6;
+  --plant-pot-detail: #cce8ee;
+  --plant-flower: #79b7cb;
+  --plant-flower-light: #b1dbe5;
+  --plant-stem: #4e8796;
+  --plant-leaf: #62a5b7;
+  --plant-leaf-light: #9bcbd5;
+  --plant-leaf-mid: #4f91a4;
+  --plant-leaf-pale: #83bac8;
+  --plant-leaf-top: #70adbd;
+  --plant-leaf-edge: #477f8e;
+  --plant-leaf-edge-dark: #3c6f7d;
+  --plant-leaf-vein: #d7edf1;
+}
+
+[data-hobby-theme="running"] {
+  --hb-green: #b95243;
+  --hb-soft: #fff0eb;
+  --hb-line: #f0d9d2;
+  --hb-accent: #c76353;
+  --plant-bg: #fff1ed;
+  --plant-pot: #f3b3a4;
+  --plant-pot-end: #d9806f;
+  --plant-pot-edge: #bb6758;
+  --plant-pot-rim: #e99a88;
+  --plant-pot-highlight: #ffe0d8;
+  --plant-pot-detail: #f8c5b9;
+  --plant-flower: #e98283;
+  --plant-flower-light: #f4b2ac;
+  --plant-stem: #b86655;
+  --plant-leaf: #82a96e;
+  --plant-leaf-light: #b3c991;
+  --plant-leaf-mid: #71985d;
+  --plant-leaf-pale: #a0bd7e;
+  --plant-leaf-top: #8eaf70;
+  --plant-leaf-edge: #668a57;
+  --plant-leaf-edge-dark: #58794b;
+  --plant-leaf-vein: #e3edcf;
+}
+
+[data-hobby-theme] .hb-checkin.on,
+[data-hobby-theme] .hb-week .on i,
+[data-hobby-theme] .hb-heat.on {
+  background: var(--hb-green);
+}
+
+[data-hobby-theme] .hb-checkin.on {
+  border-color: var(--hb-green);
+}
+
+[data-hobby-theme] .hb-bar > span {
+  background: var(--hb-green);
+}
+
+[data-hobby-theme] .hb-next {
+  background: linear-gradient(120deg, var(--hb-soft), var(--plant-bg, #fdf2dc));
+  border-color: var(--hb-line);
+}
+
+[data-hobby-theme] .hb-milestone {
+  background: var(--hb-soft);
+}
+
+[data-hobby-theme] .hb-tasks input[type="checkbox"] {
+  accent-color: var(--hb-green);
+}
+
+[data-hobby-theme] .hb-today-tab .hb-plant {
+  background: linear-gradient(125deg, var(--plant-bg, #f0f7e9), var(--hb-bg, #fffefa));
+}
+
+[data-hobby-theme] .hb-primary:hover {
+  filter: brightness(.92);
+}
+
+
+/* Default plant palette for custom hobbies. */
+:root {
+  --plant-bg: #f0f5e9;
+  --plant-stem: #56835c;
+  --plant-leaf: #83b777;
+  --plant-leaf-light: #a2c98c;
+  --plant-leaf-mid: #73a96c;
+  --plant-leaf-pale: #96c483;
+  --plant-leaf-top: #78ad70;
+  --plant-leaf-edge: #56835c;
+  --plant-leaf-edge-dark: #4e7e56;
+  --plant-leaf-vein: #d9eacd;
+}
+
+/* Phase 4 — hobby garden cards */
+.hb-cards {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
+  gap: 16px;
+}
+
+.hb-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(145deg, #fffefa, var(--hb-soft));
+  border-color: var(--hb-line);
+  box-shadow: 0 8px 24px rgba(40, 60, 45, .045);
+}
+
+.hb-card-link {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.hb-card-garden-art {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  min-height: 136px;
+  border-radius: 18px;
+  background: var(--plant-bg, #f0f5e9);
+  overflow: hidden;
+}
+
+.hb-card-plant {
+  width: 88px;
+  height: 88px;
+  filter: drop-shadow(0 5px 5px rgba(69, 105, 65, .10));
+}
+
+.hb-card-garden-art small {
+  color: var(--hb-green);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.hb-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hb-card-title .hb-emoji {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  flex: none;
+  background: var(--hb-soft);
+}
+
+.hb-card-title strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hb-card .hb-checkin {
+  width: 100%;
+}
+
+.hb-template[data-hobby-theme] {
+  border-color: var(--hb-line);
+}
+
+.hb-template[data-hobby-theme].selected {
+  border-color: var(--hb-green);
+  background: var(--hb-soft);
+}
+
+@media (max-width: 560px) {
+  .hb-card-link {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .hb-card-garden-art {
+    min-height: 122px;
+  }
+
+  .hb-card-plant {
+    width: 78px;
+    height: 78px;
+  }
+}
+
+
+/* Phase A — consistent field styling and keyboard focus */
+.hb-field input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1.5px solid #cfd9c6;
+  border-radius: 12px;
+  font: 500 16px 'DM Sans', sans-serif;
+  background: #fff;
+  color: var(--hb-ink);
+  min-width: 0;
+}
+
+.hb-field input:focus-visible,
+.hb-field textarea:focus-visible,
+.hb-field select:focus-visible {
+  outline: 3px solid var(--hb-green);
+  outline-offset: 2px;
+}
+
+.hb-session-sheet .hb-field input,
+.hb-session-sheet .hb-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.hb-undo-session-toast {
+  z-index: 280;
+}
+
+
+/* Phase B — persistent session and focused practice */
+.hb-detail-page .hb-tabs[hidden],
+.hb-detail-page .hb-tab-panel[hidden],
+.hb-detail-page .hb-checkin-dock[hidden] {
+  display: none !important;
+}
+
+.hb-session-dock-actions {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+}
+
+.hb-log-it {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--hb-green);
+  font: 700 14px 'DM Sans', sans-serif;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.hb-log-it:hover {
+  background: var(--hb-soft);
+}
+
+.hb-session-focus {
+  display: grid;
+  justify-items: center;
+  gap: 13px;
+  width: min(100%, 650px);
+  margin: 22px auto;
+  padding: clamp(24px, 5vw, 42px);
+  border: 1px solid var(--hb-line);
+  border-radius: 28px;
+  background: linear-gradient(150deg, var(--hb-bg), var(--hb-soft));
+  text-align: center;
+}
+
+.hb-session-focus > .eyebrow {
+  margin: 4px 0 0;
+  color: var(--hb-green);
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.hb-session-focus h2 {
+  max-width: 28ch;
+  margin: 0;
+  font: 800 clamp(22px, 4vw, 30px)/1.25 'Manrope', sans-serif;
+}
+
+.hb-session-focus-stage,
+.hb-session-focus-tip {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--hb-muted);
+}
+
+.hb-session-focus-tip {
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: #ffffffa8;
+}
+
+.hb-session-clock {
+  margin: 8px 0;
+  color: var(--hb-green);
+  font: 800 clamp(38px, 8vw, 56px)/1 'Manrope', sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .04em;
+}
+
+.hb-session-focus > .hb-primary {
+  min-width: 210px;
+  min-height: 52px;
+}
+
+.hb-session-long-warning {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff3df;
+  color: #805322;
+  font-weight: 600;
+}
+
+.hb-session-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hb-session-presets .hb-chip {
+  min-height: 44px;
+}
+
+.hb-active-session {
+  color: var(--hb-green) !important;
+  font-weight: 800;
+}
+
+.hb-active-session-notice {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--hb-soft);
+  color: var(--hb-ink);
+}
+
+.hb-active-session-notice a {
+  color: var(--hb-green);
+  font-weight: 800;
+}
+
+.hb-session-reward {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1px solid var(--hb-line);
+  border-radius: 20px;
+  background: linear-gradient(120deg, var(--plant-bg, #f0f5e9), var(--hb-bg));
+  animation: hb-session-reward-in 220ms ease-out;
+}
+
+.hb-session-reward > div {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 5px;
+}
+
+.hb-session-reward .eyebrow {
+  margin: 0;
+  color: var(--hb-green);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.hb-session-reward strong {
+  font-size: 17px;
+}
+
+.hb-session-reward small {
+  font-size: 14px;
+}
+
+.hb-make-stick {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 18px;
+  border: 1px solid var(--hb-line);
+  border-radius: 18px;
+  background: var(--hb-soft);
+}
+
+.hb-make-stick > div:first-child p {
+  margin: 4px 0;
+  color: var(--hb-muted);
+}
+
+.hb-make-stick > div:first-child .eyebrow {
+  color: var(--hb-green);
+  font-weight: 800;
+}
+
+.hb-make-stick .hb-field {
+  margin-top: 0;
+}
+
+.hb-make-stick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hb-make-stick-actions button {
+  min-height: 44px;
+}
+
+@keyframes hb-session-reward-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 820px) {
+  .hb-session-dock-actions {
+    justify-items: stretch;
+  }
+
+  .hb-log-it {
+    width: 100%;
+  }
+
+  .hb-session-focus {
+    margin-top: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hb-session-reward {
+    animation: none;
+  }
+}
