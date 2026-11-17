@@ -1209,3 +1209,94 @@ html.choivia-reduce-motion *::after {
   --cv-page-wide: 1080px;
   --cv-page-compact: 720px;
 }
+
+
+/* Calendar special-day indicators */
+.cv-event-markers {
+  gap: 3px;
+}
+
+.cv-personal-marker {
+  background: #d66d3d;
+}
+
+.cv-special-marker {
+  background: #6e9565;
+}
+
+.cv-special-marker.special-memorial {
+  background: #9174bd;
+}
+
+.cv-special-marker.special-religious,
+.cv-special-marker.special-national {
+  background: #6e9565;
+}
+
+.cv-special-marker.special-special {
+  background: #b18a52;
+}
+
+/* Selected date: special days */
+.cv-special-list {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.cv-special-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #f1f6eb;
+}
+
+.cv-special-item.special-memorial {
+  background: #f3eff9;
+}
+
+.cv-special-item.special-special {
+  background: #f8f3e9;
+}
+
+.cv-special-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #e1edd8;
+  color: #426b4c;
+}
+
+.cv-special-item.special-memorial .cv-special-icon {
+  background: #e9e0f3;
+  color: #795b9e;
+}
+
+.cv-special-item.special-special .cv-special-icon {
+  background: #eee4d1;
+  color: #927044;
+}
+
+.cv-special-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cv-special-copy b {
+  font: 700 14px 'Manrope';
+  color: #2f4035;
+}
+
+.cv-special-copy span,
+.cv-special-copy small {
+  color: #778278;
+  font-size: 13px;
+  line-height: 1.4;
+}
+

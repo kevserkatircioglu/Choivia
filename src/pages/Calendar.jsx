@@ -3,6 +3,23 @@ import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react'
 import Icon from '../components/Icon.jsx'
 import { useStored } from '../lib/useStored.js'
 import { dayKey } from '../utils/streak.js'
+import { mainKind, specialsFor } from '../data/specialDays.js'
+
+const SPECIAL_ICON = {
+  national: 'star',
+  religious: 'sparkles',
+  memorial: 'heart',
+  special: 'calendar',
+  week: 'calendar',
+}
+
+const SPECIAL_LABEL = {
+  national: 'Public holiday',
+  religious: 'Religious holiday',
+  memorial: 'Commemorative day',
+  special: 'Special day',
+  week: 'Special week',
+}
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
@@ -37,21 +54,28 @@ export default function Calendar({ user }) {
       {DOW.map((d, i) => <i key={i} className="cv-dow">{d}</i>)}
       {cellsOf(year, m).map((d, i) => {
         if (!d) return <span key={i} />
-        const k = keyOf(year, m, d); const list = byDate[k]
+        const k = keyOf(year, m, d)
+        const list = byDate[k] || []
+        const specialDays = specialsFor(year, m, d)
+        const specialKind = mainKind(specialDays)
+
         return (
           <button
             key={i}
             type="button"
-            className={`cv-cell${k === today ? ' today' : ''}${list ? ' has' : ''}${k === sel ? ' sel' : ''}`}
+            className={`cv-cell${k === today ? ' today' : ''}${list.length ? ' has' : ''}${specialKind ? ` has-special special-${specialKind}` : ''}${k === sel ? ' sel' : ''}`}
             onClick={() => setSel(k)}
-            aria-label={`${d} ${MONTHS[m]} ${year}${k === today ? ', today' : ''}${list ? `, ${list.length} events` : ''}`}
+            aria-label={`${d} ${MONTHS[m]} ${year}${k === today ? ', today' : ''}${list.length ? `, ${list.length} events` : ''}${specialDays.length ? `, ${specialDays.map((item) => item.name).join(', ')}` : ''}`}
           >
             {d}
-            {list && (
+            {(list.length > 0 || specialKind) && (
               <small className="cv-event-markers" aria-hidden="true">
-                {Array.from({ length: Math.min(list.length, 3) }, (_, marker) => (
-                  <i key={marker} />
-                ))}
+                {list.length > 0 && (
+                  <i className="cv-personal-marker" />
+                )}
+                {specialKind && (
+                  <i className={`cv-special-marker special-${specialKind}`} />
+                )}
               </small>
             )}
           </button>
@@ -126,11 +150,40 @@ export default function Calendar({ user }) {
           <div className="cv-sheet" role="dialog" aria-label="Day details" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="cv-sheet-x" onClick={() => setSel(null)} aria-label="Close"><X size={20} /></button>
             <h2>{new Date(`${sel}T00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
+            {(() => {
+              const selectedDate = new Date(`${sel}T00:00`)
+              const selectedSpecials = specialsFor(
+                selectedDate.getFullYear(),
+                selectedDate.getMonth(),
+                selectedDate.getDate(),
+              )
+
+              return selectedSpecials.length > 0 ? (
+                <section className="cv-special-list" aria-label="Special days">
+                  {selectedSpecials.map((item, index) => (
+                    <div className={`cv-special-item special-${item.type}`} key={`${item.name}-${index}`}>
+                      <span className="cv-special-icon">
+                        <Icon name={SPECIAL_ICON[item.type] || 'calendar'} size={18} />
+                      </span>
+                      <div className="cv-special-copy">
+                        <b>{item.name}</b>
+                        <span>{SPECIAL_LABEL[item.type] || 'Special day'}</span>
+                        {item.isHalfDay && (
+                          <small>Half-day · from {item.time || '13:00'}</small>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </section>
+              ) : null
+            })()}
             <ul className="cv-ev-list">
               {(byDate[sel] || []).map((ev) => (
                 <li key={ev.id}><span className="cv-event-icon"><Icon name={ev.emoji || '⭐'} size={18} /></span><b>{ev.title}</b><button type="button" onClick={() => setEvents(events.filter((x) => x.id !== ev.id))} aria-label="Remove event">×</button></li>
               ))}
-              {!byDate[sel] && <li className="cv-ev-empty">Nothing planned for this day.</li>}
+              {!(byDate[sel] || []).length && !specialsFor(
+                ...sel.split('-').map((part, index) => index === 1 ? Number(part) - 1 : Number(part))
+              ).length && <li className="cv-ev-empty">Nothing planned for this day.</li>}
             </ul>
             <form onSubmit={add} className="cv-ev-form">
               <div className="cv-emoji-row" role="radiogroup" aria-label="Pick an icon">{EMOJIS.map((x) => <button key={x} type="button" role="radio" aria-label={EVENT_ICON_LABELS[x]} aria-checked={emoji === x} className={emoji === x ? 'on' : ''} onClick={() => setEmoji(x)}><Icon name={x} size={18} /></button>)}</div>
