@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, ArrowUpRight, BookMarked, CalendarDays, Clock3, Home as HomeIcon, Leaf, Settings2, Sprout } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, BookHeart, BookMarked, CalendarDays, Clock3, Home as HomeIcon, Leaf, Settings2, Sprout } from 'lucide-react'
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import './App.css'
 import './choivia-extra.css'
@@ -12,6 +12,7 @@ import SaplingTransition from './components/SaplingTransition.jsx'
 import ScenicHero from './components/ScenicHero.jsx'
 import { Avatar } from './components/Avatar.jsx'
 import Calendar from './pages/Calendar.jsx'
+import Diary from './pages/Diary.jsx'
 import Preferences from './pages/Preferences.jsx'
 import TodayPlan from './components/TodayPlan.jsx'
 import UpcomingEvents from './components/UpcomingEvents.jsx'
@@ -36,6 +37,7 @@ function Sidebar() {
     { to: '/calendar', label: 'Calendar', icon: CalendarDays },
     { to: '/hobbies', label: 'Hobbies', icon: Sprout },
     { to: '/books', label: 'Reading list', icon: BookMarked },
+    { to: '/diary', label: 'Diary', icon: BookHeart },
     { to: '/profile', label: 'Preferences', icon: Settings2 },
   ]
 
@@ -213,6 +215,7 @@ function App() {
             <Route path="/calendar" element={<Calendar user={user} />} />
             <Route path="/planner" element={<Planner user={user} />} />
             <Route path="/books" element={<Books user={user} />} />
+            <Route path="/diary" element={<Diary user={user} />} />
             <Route
               path="/profile"
               element={<Preferences user={user} onUpdateUser={updateUserProfile} onLogout={handleLogout} />}

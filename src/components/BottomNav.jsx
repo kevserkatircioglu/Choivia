@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { BookMarked, CalendarDays, Clock3, Home, Sprout } from 'lucide-react'
+import { BookHeart, BookMarked, CalendarDays, Clock3, Home, Sprout } from 'lucide-react'
 
 const ITEMS = [
   { to: '/', label: 'Home', icon: Home, end: true },
@@ -7,6 +7,7 @@ const ITEMS = [
   { to: '/calendar', label: 'Calendar', icon: CalendarDays },
   { to: '/hobbies', label: 'Hobbies', icon: Sprout },
   { to: '/books', label: 'Books', icon: BookMarked },
+  { to: '/diary', label: 'Diary', icon: BookHeart },
 ]
 
 export default function BottomNav() {
