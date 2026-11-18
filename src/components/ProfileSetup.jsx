@@ -1,10 +1,12 @@
-
 import { useState } from 'react'
-import { ArrowRight } from 'lucide-react'
-import { Avatar, AvatarPicker } from './Avatar.jsx'
+import { ArrowRight, Info } from 'lucide-react'
+import { Avatar } from './Avatar.jsx'
 import Logo from './Logo.jsx'
-import PlantIllustration from './PlantIllustration.jsx'
-import { readAccounts } from '../lib/auth.js'
+import {
+  validateUsername,
+  usernameTaken,
+} from '../lib/authValidation.js'
+import { AVATARS } from '../data/avatars.js'
 
 export default function ProfileSetup({ user, onDone }) {
   const [avatar, setAvatar] = useState(user.avatar || null)
@@ -12,62 +14,37 @@ export default function ProfileSetup({ user, onDone }) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  function handleSubmit(e) {
-    e.preventDefault()
+  function handleSubmit(event) {
+    event.preventDefault()
     setError('')
 
-    const name = username.trim()
+    const cleanUsername = username.trim()
+    const validationError = validateUsername(cleanUsername)
 
-    // Username validation
-    if (name.length < 3) {
-      setError('Username must be at least 3 characters.')
+    if (validationError) {
+      setError(validationError)
       return
     }
 
-    if (name.length > 20) {
-      setError('Username cannot exceed 20 characters.')
+    if (usernameTaken(cleanUsername, user.id)) {
+      setError('This username is already taken. Please choose another.')
       return
     }
 
-    if (!/^[a-zA-Z0-9_]+$/.test(name)) {
-      setError(
-        'Username can only contain letters, numbers and underscores.'
-      )
-      return
-    }
-
-    // Avatar validation
     if (!avatar) {
-      setError('Please choose an avatar.')
+      setError('Please choose your avatar.')
       return
     }
 
-    // Check username availability
-    const accounts = readAccounts()
-
-    const existing = accounts.find(
-      (account) =>
-        account.id !== user.id &&
-        account.username?.toLowerCase() === name.toLowerCase()
-    )
-
-    if (existing) {
-      setError('This username is already taken. Try another one.')
-      return
-    }
-
-    // Complete profile setup
     setBusy(true)
 
     try {
       onDone({
-        username: name,
+        username: cleanUsername,
         avatar,
       })
     } catch (err) {
-      setError(
-        err.message || 'Something went wrong. Please try again.'
-      )
+      setError(err.message || 'Unable to save your profile.')
       setBusy(false)
     }
   }
@@ -75,24 +52,18 @@ export default function ProfileSetup({ user, onDone }) {
   return (
     <main className="cv-auth cv-setup">
       <section className="cv-auth-card cv-setup-card">
-
-        {/* Brand */}
         <div className="cv-auth-brand">
           <Logo size={30} /> choivia
         </div>
 
-        {/* Heading */}
         <h1>Create your profile</h1>
 
         <p>
-          Hi{user.firstName ? ` ${user.firstName}` : ''}!
-          Choose a username and pick the buddy
-          who will join you every day.
+          Hi{user.firstName ? ` ${user.firstName}` : ''}! Choose a username
+          and pick the buddy who will join you every day.
         </p>
 
-        {/* Username */}
         <form onSubmit={handleSubmit} className="cv-form">
-
           <div className="cv-setup-username">
             <label htmlFor="profile-username">
               Choose your username
@@ -102,79 +73,75 @@ export default function ProfileSetup({ user, onDone }) {
               id="profile-username"
               type="text"
               value={username}
-              onChange={(e) => {
-                setUsername(e.target.value)
+              onChange={(event) => {
+                setUsername(event.target.value)
                 setError('')
               }}
               placeholder="e.g. littlebloom"
               minLength={3}
-              maxLength={20}
+              maxLength={16}
+              autoCapitalize="none"
               autoComplete="username"
               required
             />
 
             <small>
-              3–20 characters. Letters, numbers and underscores only.
+              3–16 characters. Letters, numbers, dots and underscores.
+              Turkish characters are supported.
             </small>
           </div>
 
-          {/* Avatar Preview */}
-          <div className="cv-setup-preview">
-            {avatar ? (
+          {avatar && (
+            <div className="cv-setup-preview">
               <Avatar
-                key={avatar}
                 id={avatar}
-                size={120}
+                size={112}
                 className="cv-hero-avatar cv-swap"
               />
-            ) : (
-              <div className="cv-setup-empty">
-                <PlantIllustration stage="seed" size={72} />
-              </div>
-            )}
-          </div>
-
-          {/* Avatar Selection */}
-          <div className="cv-setup-avatar-section">
-            <h3>Choose your avatar</h3>
-
-            <p>
-              Pick your favorite buddy!
-            </p>
-
-            <AvatarPicker
-              value={avatar}
-              onChange={(value) => {
-                setAvatar(value)
-                setError('')
-              }}
-            />
-          </div>
-
-          {/* Error */}
-          {error && (
-            <p className="cv-error" role="alert">
-              {error}
-            </p>
+            </div>
           )}
 
-          {/* Submit */}
+          <div className="cv-setup-avatar-section">
+            <h3>Choose your avatar</h3>
+            <p>Pick your favorite buddy!</p>
+
+            <div className="cv-avatar-grid">
+              {AVATARS.map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  className={`cv-avatar-pick${avatar === item.id ? ' selected' : ''}`}
+                  aria-pressed={avatar === item.id}
+                  onClick={() => {
+                    setAvatar(item.id)
+                    setError('')
+                  }}
+                >
+                  <Avatar id={item.id} size={64} />
+                  <span>{item.name || item.id}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <p className="cv-setup-hint">
+            <Info size={16} />
+            You can change your username and avatar later from Preferences.
+          </p>
+
+          {error && <p className="cv-error" role="alert">{error}</p>}
+
           <button
             className="cv-submit"
             type="submit"
-            disabled={busy}
+            disabled={busy || !avatar || !username.trim()}
           >
-            {busy ? 'One moment…' : 'Let’s go'}
-
+            {busy ? 'One moment…' : 'Start using Choivia'}
             <ArrowRight size={18} />
           </button>
-
         </form>
 
-        <p className="cv-foot">
-          Your profile is your own little space.
-        </p>
-
+        <p className="cv-foot">Your profile is your own little space.</p>
       </section>
     </main>
   )

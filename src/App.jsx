@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, ArrowUpRight, BookHeart, BookMarked, CalendarDays, Clock3, Home as HomeIcon, Leaf, Settings2, Sprout } from 'lucide-react'
+import { ArrowRight, BookHeart, BookMarked, CalendarDays, Clock3, Home as HomeIcon, Settings2, Sprout } from 'lucide-react'
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import './App.css'
 import './choivia-extra.css'
@@ -10,7 +10,6 @@ import ProfileSetup from './components/ProfileSetup.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import SaplingTransition from './components/SaplingTransition.jsx'
 import ScenicHero from './components/ScenicHero.jsx'
-import { Avatar } from './components/Avatar.jsx'
 import Calendar from './pages/Calendar.jsx'
 import Diary from './pages/Diary.jsx'
 import Preferences from './pages/Preferences.jsx'
@@ -68,7 +67,7 @@ function Sidebar() {
 }
 
 function Home({ user }) {
-  const [plan] = useStored(`choivia:plan:${user.id}:${dayKey()}`, {})
+  const [plan, setPlan] = useStored(`choivia:plan:${user.id}:${dayKey()}`, {})
   const [hobbies] = useStored(`choivia:hobbies:${user.id}`, [])
 
   const items = PLAN_HOURS.filter((h) => plan[h]).map((h) => ({ hour: h, ...plan[h] }))
@@ -78,25 +77,46 @@ function Home({ user }) {
   const next = items.find((item) => !item.done)
   const activity = weeklyActivity(hobbies)
 
+  const availableHours = PLAN_HOURS.filter((hour) => !plan[hour])
+const currentHour = new Date().getHours()
+
+const defaultHour = availableHours.reduce(
+  (closest, hour) =>
+    Math.abs(hour - currentHour) < Math.abs(closest - currentHour)
+      ? hour
+      : closest,
+  availableHours[0] ?? '',
+)
+
+const addHomeTask = (text, hour) => {
+  const cleanText = String(text ?? '').trim()
+  const selectedHour = Number(hour)
+
+  if (
+    !cleanText ||
+    !PLAN_HOURS.includes(selectedHour) ||
+    plan[selectedHour]
+  ) {
+    return false
+  }
+
+  setPlan((currentPlan) => {
+    if (currentPlan[selectedHour]) return currentPlan
+
+    return {
+      ...currentPlan,
+      [selectedHour]: {
+        text: cleanText,
+        done: false,
+      },
+    }
+  })
+
+  return true
+}
+
   return (
     <div className="dashboard-page dashboard-v2">
-      <header className="dashboard-heading-v2">
-        <div>
-          <p className="dashboard-overline"><span /> YOUR DAY, YOUR HOBBIES</p>
-          <h1>Make space for <em>what you love.</em></h1>
-          <p className="dashboard-subtitle">Plan your day, build habits, grow your hobbies.</p>
-        </div>
-
-        <Link to="/profile" className="dashboard-profile-chip">
-          <span className="dashboard-profile-avatar"><Avatar id={user?.avatar} size={34} /></span>
-          <span>
-            <strong>Your space</strong>
-            <small>Profile and avatar</small>
-          </span>
-          <ArrowUpRight size={16} />
-        </Link>
-      </header>
-
       <ScenicHero
         user={user}
         percent={percent}
@@ -110,20 +130,36 @@ function Home({ user }) {
       <div className="dashboard-content-grid-v2">
         <div className="dashboard-main-column-v2">
           <TodayHobbies user={user} />
-          <TodayPlan items={items} percent={percent} done={done} total={total} />
+          <TodayPlan
+            items={items}
+            percent={percent}
+            done={done}
+            total={total}
+            availableHours={availableHours}
+            defaultHour={defaultHour}
+            onAddTask={addHomeTask}
+          />
         </div>
 
         <aside className="dashboard-side-column-v2">
           <UpcomingEvents user={user} />
+
+          <Link to="/diary" className="cv-home-diary-card">
+            <span className="cv-home-diary-icon">
+              <BookHeart size={22} strokeWidth={1.7} aria-hidden="true" />
+            </span>
+            <span className="cv-home-diary-content">
+              <span className="cv-home-diary-eyebrow">A MOMENT FOR YOU</span>
+              <strong>Your daily diary</strong>
+              <span className="cv-home-diary-description">
+                Pause for a moment, collect your thoughts and reflect on your day.
+              </span>
+              <span className="cv-home-diary-action">Open today's page <span aria-hidden="true">→</span></span>
+            </span>
+          </Link>
         </aside>
       </div>
 
-      <footer className="dashboard-footer-v2">
-        <span>Made for the in-between moments of your day.</span>
-        <span>
-          GROW AT YOUR OWN PACE <Leaf size={13} />
-        </span>
-      </footer>
     </div>
   )
 }
@@ -184,16 +220,26 @@ function App() {
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(accounts))
   }
 
-  if (!user) return <AuthScreen onAuthSuccess={handleAuthSuccess} />
+  if (!user) {
+    return (
+      <>
+        <SaplingTransition />
+        <AuthScreen onAuthSuccess={handleAuthSuccess} />
+      </>
+    )
+  }
   if (
     !user.username?.trim() ||
     !AVATARS.some((a) => a.id === user.avatar)
   ) {
     return (
-      <ProfileSetup
-        user={user}
-        onDone={(changes) => updateUserProfile(changes)}
-      />
+      <>
+        <SaplingTransition />
+        <ProfileSetup
+          user={user}
+          onDone={(changes) => updateUserProfile(changes)}
+        />
+      </>
     )
   }
 

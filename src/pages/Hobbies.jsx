@@ -22,6 +22,13 @@ import {
 
 const weeklyLabel = (hobby) => `${weekCount(hobby)} of ${hobby.goalPerWeek ?? 3} days this week`
 
+const dashboardTaskLabel = (text = '') => {
+  const prefix = 'Just 2 minutes:'
+  return text.startsWith(prefix)
+    ? `${text.slice(prefix.length).trim()} (2-min version)`
+    : text
+}
+
 // Kart eylemi artık oturum sistemini kullanır; check-in silme butonu gösterilmez.
 function HobbySessionAction({ hobby, activeSession }) {
   const practiced = isCheckedToday(hobby)
@@ -112,7 +119,7 @@ export function TodayHobbies({ user }) {
                   <span className="hb-emoji" aria-hidden="true"><Icon name={hobby.emoji} size={22} /></span>
                   <span>
                     <strong>{hobby.name}</strong>
-                    <small>{next ? `Next: ${next.task.text}` : 'All steps complete'}</small>
+                    <small>{next ? `Next: ${dashboardTaskLabel(next.task.text)}` : 'All steps complete'}</small>
                     <small><PlantIllustration stage={plant.key} size={20} className="hb-inline-plant" motionPreference={motionPreference} /> {weeklyLabel(hobby)}</small>
                     {activeSession?.hobbyId === hobby.id && <small className="hb-active-session">Session in progress</small>}
                     {isWaiting(hobby) && (
@@ -208,7 +215,7 @@ export default function Hobbies({ user }) {
                         <span className="hb-emoji" aria-hidden="true"><Icon name={hobby.emoji} size={20} /></span>
                         <strong>{hobby.name}</strong>
                       </span>
-                      <small>{next ? `Next: ${next.task.text}` : 'All steps complete'}</small>
+                      <small>{next ? `Next: ${dashboardTaskLabel(next.task.text)}` : 'All steps complete'}</small>
                       <span
                         className="hb-bar"
                         role="progressbar"

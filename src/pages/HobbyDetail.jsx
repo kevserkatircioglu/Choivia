@@ -588,42 +588,69 @@ export default function HobbyDetail({ user }) {
       <header className="hb-detail-head">
         <span className="hb-emoji hb-emoji-xl" aria-hidden="true"><Icon name={hobby.emoji} size={46} /></span>
         <div className="hb-detail-title">
-          <h1>{hobby.name}</h1>
+          <div className="hb-detail-title-row">
+            <h1>{hobby.name}</h1>
+            {!isSessionRunning && (
+              <div className="hb-checkin-dock hb-detail-inline-actions">
+                <button
+                  type="button"
+                  className="hb-checkin"
+                  aria-label="Start session"
+                  disabled={Boolean(otherActiveHobby)}
+                  onClick={startSession}
+                >
+                  <Play size={15} fill="currentColor" aria-hidden="true" />
+                  <span className="hb-action-label-wide">Start session</span>
+                  <span className="hb-action-label-short">Start</span>
+                </button>
+                <button
+                  type="button"
+                  className="hb-log-it"
+                  aria-label="Already practised? Log it"
+                  onClick={openManualLog}
+                >
+                  <span className="hb-action-label-wide">Already practised? Log it</span>
+                  <span className="hb-action-label-short">Log it</span>
+                </button>
+              </div>
+            )}
+            <details className="hb-detail-menu">
+              <summary aria-label={`More options for ${hobby.name}`}>
+                <MoreHorizontal size={22} aria-hidden="true" />
+              </summary>
+              <div className="hb-detail-menu-panel">
+                <p className="eyebrow">GOAL AND REMINDER</p>
+                <label className="hb-field">
+                  <span>Weekly goal</span>
+                  <select
+                    value={goal}
+                    onChange={(event) => save({ ...hobby, goalPerWeek: Number(event.target.value) })}
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                      <option key={n} value={n}>{plural(n, 'day')} a week</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="hb-field">
+                  <span>Reminder time</span>
+                  <input
+                    type="time"
+                    value={hobby.reminderTime ?? ''}
+                    onChange={(event) => save({ ...hobby, reminderTime: event.target.value })}
+                  />
+                </label>
+                <button type="button" className="hb-danger" onClick={removeHobby}>
+                  <Trash2 size={16} aria-hidden="true" /> Delete this hobby
+                </button>
+              </div>
+            </details>
+          </div>
           {hobby.why && (
             <p className="hb-why"><Heart size={15} aria-hidden="true" /> {hobby.why}</p>
           )}
         </div>
 
-        <details className="hb-detail-menu">
-          <summary aria-label={`More options for ${hobby.name}`}>
-            <MoreHorizontal size={22} aria-hidden="true" />
-          </summary>
-          <div className="hb-detail-menu-panel">
-            <p className="eyebrow">GOAL AND REMINDER</p>
-            <label className="hb-field">
-              <span>Weekly goal</span>
-              <select
-                value={goal}
-                onChange={(event) => save({ ...hobby, goalPerWeek: Number(event.target.value) })}
-              >
-                {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                  <option key={n} value={n}>{plural(n, 'day')} a week</option>
-                ))}
-              </select>
-            </label>
-            <label className="hb-field">
-              <span>Reminder time</span>
-              <input
-                type="time"
-                value={hobby.reminderTime ?? ''}
-                onChange={(event) => save({ ...hobby, reminderTime: event.target.value })}
-              />
-            </label>
-            <button type="button" className="hb-danger" onClick={removeHobby}>
-              <Trash2 size={16} aria-hidden="true" /> Delete this hobby
-            </button>
-          </div>
-        </details>
+
       </header>
 
       <nav className="hb-tabs" hidden={isSessionRunning} role="tablist" aria-label={`${hobby.name} sections`}>
@@ -655,19 +682,6 @@ export default function HobbyDetail({ user }) {
         />
       ) : (
         <>
-          <div className="hb-checkin-dock">
-            <button
-              type="button"
-              className="hb-checkin"
-              disabled={Boolean(otherActiveHobby)}
-              onClick={startSession}
-            >
-              <Play size={17} fill="currentColor" aria-hidden="true" /> Start session
-            </button>
-            <button type="button" className="hb-log-it" onClick={openManualLog}>
-              Already practised? Log it
-            </button>
-          </div>
           {otherActiveHobby && (
             <p className="hb-active-session-notice">
               A session is already running for {otherActiveHobby.name}.{' '}

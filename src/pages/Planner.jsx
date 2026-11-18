@@ -123,7 +123,8 @@ export default function Planner({ user }) {
                     onClick={() => setOpenHour(null)}
                     aria-label="Cancel"
                   >
-                    Cancel
+                    <span className="cv-cancel-label">Cancel</span>
+                    <span className="cv-cancel-symbol" aria-hidden="true">×</span>
                   </button>
                 </form>
               ) : (
